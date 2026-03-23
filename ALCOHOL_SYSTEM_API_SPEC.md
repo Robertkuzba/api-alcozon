@@ -15,7 +15,7 @@
 | **Web** | Next.js, TypeScript, React, Tailwind | Klienci: sklep, zamówienia (standardowe i niestandardowe), śledzenie zamówienia, konto, gość + potwierdzenie 18+, informacje o alkoholach, dark mode, PL/ENG. |
 | **Mobile** | Flutter, Android Studio | Pracownicy i kurierzy: inwentarz, lista zamówień niestandardowych, lista dostaw z adresami, HR (godziny, przerwy), zmiana statusów zamówień. |
 | **Desktop** | Python, Flet | Manager: stan magazynu, zamawianie towaru, kurierzy i dostawy, ogłoszenia dostaw, oferty pracy, zatrudnianie/zwalnianie. |
-| **API** | Java 21, Spring Boot 3, PostgreSQL | **Centralna logika biznesowa:** REST + WebSocket (STOMP), spięcie Web / Mobile / Desktop. |
+| **API** | Java 21, Spring Boot 4.x, PostgreSQL | **Centralna logika biznesowa:** REST + WebSocket (STOMP), spięcie Web / Mobile / Desktop. |
 
 ### 1.2 Odpowiedzialności API (z założeń)
 
@@ -80,7 +80,7 @@
 | Technologia | Wersja / wybór | Uzasadnienie |
 |-------------|----------------|--------------|
 | **Java** | 21 LTS | Długie wsparcie, Virtual Threads, aktualny standard w enterprise. |
-| **Spring Boot** | 3.x | Kompatybilność z Java 21, Spring Security 6, JWT, WebSocket. |
+| **Spring Boot** | 4.x | Kompatybilność z Java 21, Spring Security 6, JWT, WebSocket. |
 | **PostgreSQL** | 15+ | ACID, JSONB pod rozszerzalne atrybuty, dobra integracja z Spring Data JPA i Dockerem. |
 | **Spring Security** | 6 | JWT (access + refresh), RBAC (GUEST, CUSTOMER, EMPLOYEE, MANAGER). |
 | **Spring Data JPA** | 3.x | CRUD, repozytoria, transakcje; Hibernate. |
