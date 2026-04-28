@@ -29,6 +29,17 @@ Dodawany jest też przykładowy produkt ze stanem magazynowym.
 
 Prefiks REST: **`/api`** (np. `POST /api/auth/login`). Szczegóły endpointów w Swagger.
 
+## CORS (dev)
+
+Whitelist originow jest konfigurowana w `application.yml` pod `app.cors.allowed-origins`.
+Domyslnie dozwolone sa m.in.:
+
+- `http://localhost:3000` (web)
+- `http://localhost:5000` (desktop)
+- `http://10.0.2.2:3000` i `http://10.0.2.2:5000` (Android emulator)
+
+Jesli frontend dziala na innym porcie/adresie, dopisz go do listy i zrestartuj API.
+
 ## Docker (obraz aplikacji)
 
 ```bash
