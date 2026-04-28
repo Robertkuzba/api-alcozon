@@ -50,7 +50,7 @@ public class AuthService {
         return issueTokens(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse login(LoginRequest req) {
         User user = userRepository.findByEmail(req.email().toLowerCase().trim())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
