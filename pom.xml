@@ -95,20 +95,21 @@
             <version>9.4.3</version>
         </dependency>
 
-        <!-- Flyway (migracje bazy) -->
+        <!-- Flyway (migracje bazy) — starter zapewnia integrację z cyklem życia Spring Boot -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- Tylko testy / lokalnie z własnym `docker compose up`; NIE w fat JAR na Render (uniknie przypadkowego odczytu compose.yaml) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-docker-compose</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
