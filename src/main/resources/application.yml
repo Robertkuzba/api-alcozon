@@ -46,11 +46,15 @@ jwt:
   refresh-ttl: 2592000
 
 app:
+  openapi:
+    # Swagger UI: dodatkowy serwer (nadpisz APP_OPENAPI_SERVER_URL jeśli inny host niż domyślny Render)
+    server-url: ${APP_OPENAPI_SERVER_URL:https://api-alcozon.onrender.com}
   firebase:
     # Opcjonalnie: wklej JSON service account z Firebase (Render: Secret / env).
     service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
   cors:
-    # Dev whitelist: dopisz kolejne originy używane przez Web/Mobile/Desktop.
+    # Dodatkowe originy produkcyjne (np. desktop): zmienna APP_CORS_ALLOWED_ORIGINS=url1,url2
+    # Dev whitelist:
     allowed-origins:
       - http://localhost:3000
       - http://127.0.0.1:3000

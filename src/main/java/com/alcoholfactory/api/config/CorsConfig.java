@@ -6,21 +6,21 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Configuration
 public class CorsConfig {
 
     private final CorsProperties corsProperties;
+    private final AllowedOriginsProvider allowedOriginsProvider;
 
-    public CorsConfig(CorsProperties corsProperties) {
+    public CorsConfig(CorsProperties corsProperties, AllowedOriginsProvider allowedOriginsProvider) {
         this.corsProperties = corsProperties;
+        this.allowedOriginsProvider = allowedOriginsProvider;
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(corsProperties.allowedOrigins());
+        config.setAllowedOrigins(allowedOriginsProvider.mergedAllowedOrigins());
         config.setAllowedMethods(corsProperties.allowedMethods());
         config.setAllowedHeaders(corsProperties.allowedHeaders());
         config.setExposedHeaders(corsProperties.exposedHeaders());

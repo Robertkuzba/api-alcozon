@@ -6,9 +6,17 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final AllowedOriginsProvider allowedOriginsProvider;
+
+    public WebSocketConfig(AllowedOriginsProvider allowedOriginsProvider) {
+        this.allowedOriginsProvider = allowedOriginsProvider;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -19,7 +27,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+        List<String> origins = allowedOriginsProvider.mergedAllowedOrigins();
+        var registration = registry.addEndpoint("/ws");
+        if (origins.isEmpty()) {
+            registration.setAllowedOriginPatterns("*");
+        } else {
+            registration.setAllowedOrigins(origins.toArray(new String[0]));
+        }
     }
 }

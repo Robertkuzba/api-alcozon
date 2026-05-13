@@ -8,10 +8,12 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,29 +41,33 @@ public class WebSocketAuthChannelConfig implements WebSocketMessageBrokerConfigu
                 }
                 List<String> headers = accessor.getNativeHeader("Authorization");
                 if (headers == null || headers.isEmpty()) {
-                    return message;
+                    throw new MessageDeliveryException(message, new BadCredentialsException("Missing Authorization for STOMP CONNECT"));
                 }
                 String raw = headers.getFirst();
                 if (raw == null || !raw.startsWith("Bearer ")) {
-                    return message;
+                    throw new MessageDeliveryException(message, new BadCredentialsException("STOMP CONNECT requires Bearer token"));
                 }
-                String token = raw.substring(7);
+                String token = raw.substring(7).trim();
+                if (token.isEmpty()) {
+                    throw new MessageDeliveryException(message, new BadCredentialsException("Empty bearer token"));
+                }
                 try {
                     Claims claims = jwtService.parseAccessToken(token);
                     String email = claims.get("email", String.class);
                     String role = claims.get("role", String.class);
-                    if (email != null) {
-                        var authorities = role == null
-                                ? List.<SimpleGrantedAuthority>of()
-                                : Stream.of(role)
-                                .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                                .collect(Collectors.toList());
-                        var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
-                        accessor.setUser(auth);
-                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    if (email == null) {
+                        throw new MessageDeliveryException(message, new BadCredentialsException("Token without email claim"));
                     }
-                } catch (Exception ignored) {
-                    // połączenie bez poprawnego JWT — gość (np. tylko odczyt topiców publicznych)
+                    var authorities = role == null
+                            ? List.<SimpleGrantedAuthority>of()
+                            : Stream.of(role)
+                            .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                            .collect(Collectors.toList());
+                    var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                    accessor.setUser(auth);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                } catch (Exception e) {
+                    throw new MessageDeliveryException(message, new BadCredentialsException("Invalid or expired STOMP token", e));
                 }
                 return message;
             }

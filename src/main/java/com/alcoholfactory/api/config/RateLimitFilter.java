@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Login: 10 prób / 15 min / IP. Wyszukiwarka produktów (param q): 5 req/s / IP.
+ * Publiczne śledzenie zamówienia: 30 żądań / min / IP.
  */
 @Component
 @Order(0)
@@ -27,6 +28,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> searchBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> orderTrackBuckets = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(
@@ -43,6 +45,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setHeader("Retry-After", "60");
                 response.getWriter().write("Too many login attempts");
+                return;
+            }
+        }
+
+        if ("GET".equalsIgnoreCase(request.getMethod())
+                && path.contains("/orders/track")) {
+            Bucket bucket = orderTrackBuckets.computeIfAbsent(ip, k -> orderTrackBucket());
+            if (!bucket.tryConsume(1)) {
+                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                response.setHeader("Retry-After", "60");
+                response.getWriter().write("Order track rate limit exceeded");
                 return;
             }
         }
@@ -70,6 +83,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static Bucket searchBucket() {
         Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofSeconds(1)));
+        return Bucket.builder().addLimit(limit).build();
+    }
+
+    private static Bucket orderTrackBucket() {
+        Bandwidth limit = Bandwidth.classic(30, Refill.intervally(30, Duration.ofMinutes(1)));
         return Bucket.builder().addLimit(limit).build();
     }
 

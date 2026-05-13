@@ -9,7 +9,9 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -20,16 +22,22 @@ public class OpenApiConfig {
     @Value("${server.port:8080}")
     private int serverPort;
 
+    @Value("${app.openapi.server-url:}")
+    private String publicServerUrl;
+
     @Bean
     public OpenAPI alcoholFactoryOpenAPI() {
+        List<Server> servers = new ArrayList<>();
+        servers.add(new Server().url("http://localhost:" + serverPort).description("Local"));
+        if (StringUtils.hasText(publicServerUrl)) {
+            servers.add(new Server().url(publicServerUrl.trim()).description("Production (Render)"));
+        }
         return new OpenAPI()
                 .info(new Info()
                         .title("Alcohol Factory API")
                         .description("API dla systemu firmy produkującej alkohol – Web, Mobile, Desktop")
                         .version("0.0.1-SNAPSHOT"))
-                .servers(List.of(
-                        new Server().url("http://localhost:" + serverPort).description("Local")
-                ))
+                .servers(servers)
                 .components(new Components().addSecuritySchemes(BEARER_SCHEME,
                         new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)

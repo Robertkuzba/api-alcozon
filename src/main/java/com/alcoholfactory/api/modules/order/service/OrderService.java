@@ -14,6 +14,7 @@ import com.alcoholfactory.api.modules.order.dto.CreateOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderItemResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderLineRequest;
+import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
@@ -83,8 +84,26 @@ public class OrderService {
         }
         order.setTotalAmount(total);
         orderRepository.save(order);
+        notificationPublisher.publishOrderStatusChange(user.getEmail(), order.getId(), OrderStatus.SUBMITTED);
         fcmStaffOrderPushService.notifyNewOrderSubmitted(order.getId());
         return toResponse(orderRepository.findDetailById(order.getId()).orElse(order));
+    }
+
+    /**
+     * Publiczne śledzenie: ten sam komunikat błędu przy złym ID lub złym e-mailu (ograniczenie enumeracji).
+     */
+    @Transactional(readOnly = true)
+    public OrderTrackResponse trackPublic(Long orderId, String email) {
+        String normalized = email == null ? "" : email.trim().toLowerCase();
+        if (normalized.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Invalid email");
+        }
+        CustomerOrder order = orderRepository.findByIdWithCustomer(orderId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (!order.getCustomer().getEmail().equalsIgnoreCase(normalized)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+        return new OrderTrackResponse(order.getId(), order.getStatus(), order.getCreatedAt(), order.getUpdatedAt());
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ package com.alcoholfactory.api.modules.order.api;
 
 import com.alcoholfactory.api.modules.order.dto.CreateOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderResponse;
+import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
 import com.alcoholfactory.api.modules.order.dto.PatchOrderStatusRequest;
 import com.alcoholfactory.api.modules.order.service.OrderService;
 import com.alcoholfactory.api.security.AppUserDetails;
@@ -21,8 +22,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 import java.util.List;
 import java.util.Set;
@@ -30,6 +37,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Orders")
 public class OrderController {
 
@@ -53,6 +61,15 @@ public class OrderController {
     @Operation(summary = "Moje zamówienia")
     public List<OrderResponse> my(@AuthenticationPrincipal AppUserDetails user) {
         return orderService.myOrders(user.getId());
+    }
+
+    @GetMapping("/track")
+    @Operation(summary = "Publiczne śledzenie zamówienia (orderId + e-mail klienta, bez JWT)")
+    public OrderTrackResponse trackPublic(
+            @RequestParam @Positive Long orderId,
+            @RequestParam @NotBlank @Email String email
+    ) {
+        return orderService.trackPublic(orderId, email);
     }
 
     @GetMapping
