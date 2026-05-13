@@ -88,6 +88,13 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Firebase Cloud Messaging (push – opcjonalnie, gdy ustawiony JSON service account) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.3</version>
+        </dependency>
+
         <!-- Flyway (migracje bazy) -->
         <dependency>
             <groupId>org.flywaydb</groupId>

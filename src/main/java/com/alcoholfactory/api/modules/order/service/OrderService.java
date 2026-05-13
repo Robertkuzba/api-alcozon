@@ -19,6 +19,7 @@ import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
+import com.alcoholfactory.api.notification.FcmStaffOrderPushService;
 import com.alcoholfactory.api.notification.OrderNotificationPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final DeliveryRepository deliveryRepository;
     private final OrderNotificationPublisher notificationPublisher;
+    private final FcmStaffOrderPushService fcmStaffOrderPushService;
 
     @Transactional
     public OrderResponse create(Long userId, CreateOrderRequest req) {
@@ -81,6 +83,7 @@ public class OrderService {
         }
         order.setTotalAmount(total);
         orderRepository.save(order);
+        fcmStaffOrderPushService.notifyNewOrderSubmitted(order.getId());
         return toResponse(orderRepository.findDetailById(order.getId()).orElse(order));
     }
 

@@ -1,13 +1,14 @@
 package com.alcoholfactory.api;
 
 import com.alcoholfactory.api.config.CorsProperties;
+import com.alcoholfactory.api.config.FirebaseProperties;
 import com.alcoholfactory.api.config.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, CorsProperties.class, FirebaseProperties.class})
 public class AlcoholFactoryApiApplication {
 
     public static void main(String[] args) {

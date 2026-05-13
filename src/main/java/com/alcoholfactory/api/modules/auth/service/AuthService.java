@@ -124,6 +124,6 @@ public class AuthService {
                 .expiresAt(exp)
                 .revoked(false)
                 .build());
-        return TokenResponse.of(access, refreshPlain, jwtService.accessTtlSeconds());
+        return TokenResponse.of(access, refreshPlain, jwtService.accessTtlSeconds(), user);
     }
 }
