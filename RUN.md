@@ -139,6 +139,20 @@ Po bezczynności pierwsze żądanie może trwać **50–90 s** (timeout w narzę
 | 401 na `/api/devices/fcm` | Brak Bearer | Token po `POST /api/auth/login` |
 | Push nie dociera do klienta www | Backend wysyła FCM tylko do EMPLOYEE/MANAGER | Status zamówienia dla CUSTOMER → **STOMP**, nie FCM |
 
+### Katalog produktów (pliki txt)
+
+Folder `Informacje do bazy danych/` — listy alkoholi (nazwa, %, pojemność w linii).
+
+Po edycji plików wygeneruj migrację i wgraj na produkcję:
+
+```powershell
+py scripts/generate_product_seed.py
+git add src/main/resources/db/migration/V12__seed_catalog_products.sql
+# commit + push → Render uruchomi Flyway V12 na Neon
+```
+
+Migracja `V12__seed_catalog_products.sql` dodaje ~86 produktów + stan magazynowy (50 szt.), dezaktywuje demo `Demo Vodka 500ml`.
+
 ### Docker (obraz własny, opcjonalnie)
 
 ```bash
