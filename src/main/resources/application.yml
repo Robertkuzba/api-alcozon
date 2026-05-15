@@ -92,6 +92,6 @@ springdoc:
     path: /docs
     operationsSorter: method
 
-# Serwer (base path API możesz dodać w WebMvcConfig lub w kontrolerach)
+# Serwer — na Renderze ustaw PORT w env; lokalnie domyślnie 8080
 server:
-  port: 8080
+  port: ${PORT:8080}
