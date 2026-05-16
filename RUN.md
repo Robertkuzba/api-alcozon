@@ -92,7 +92,9 @@ set -a && source .env.local && set +a && ./mvnw spring-boot:run
 ## 7. Wdrożenie na Render (produkcja)
 
 Publiczne API (przykład): **https://api-alcozon.onrender.com**  
-Swagger: `/docs` · OpenAPI JSON: `/api-docs` · WebSocket: `wss://…/ws`
+Swagger: `/docs` · OpenAPI JSON: `/api-docs` · WebSocket: `wss://…/ws` · Health: `GET /actuator/health` (bez auth, dla Render / monitoringu)
+
+Integracja zespołu (szkic, statusy, endpointy): [INTEGRATION_TEAM.md](INTEGRATION_TEAM.md)
 
 ### Wymagane zmienne (Render → Environment)
 
@@ -121,10 +123,11 @@ Po bezczynności pierwsze żądanie może trwać **50–90 s** (timeout w narzę
 
 ### Smoke test po deployu
 
-1. Logi startu: Flyway migracje do **V11** (`fcm_device_tokens`), brak `missing table`.
-2. `GET /api/orders/track?orderId=1&email=test@example.com` → 404 lub 200 (endpoint żyje).
-3. `POST /api/auth/login` → token; `POST /api/devices/fcm` z Bearer → **204** (gdy FCM skonfigurowany).
-4. STOMP: `CONNECT` z `Authorization: Bearer …` → subskrypcja `/user/queue/order-updates`.
+1. Logi startu: Flyway migracje (np. **V12** katalog produktów), brak `missing table`.
+2. `GET /actuator/health` → `{"status":"UP"}`.
+3. `GET /api/orders/track?orderId=1&email=test@example.com` → 404 lub 200 (endpoint żyje).
+4. `POST /api/auth/login` → token; `POST /api/devices/fcm` z Bearer → **204** (gdy FCM skonfigurowany).
+5. STOMP: `CONNECT` z `Authorization: Bearer …` → subskrypcja `/user/queue/order-updates`.
 
 ### Typowe błędy
 
