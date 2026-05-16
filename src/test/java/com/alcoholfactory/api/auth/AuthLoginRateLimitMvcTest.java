@@ -3,11 +3,18 @@ package com.alcoholfactory.api.auth;
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AuthLoginRateLimitMvcTest extends AbstractIntegrationTest {
+
+    @DynamicPropertySource
+    static void enableRateLimit(DynamicPropertyRegistry registry) {
+        registry.add("app.rate-limit.enabled", () -> "true");
+    }
 
   @Test
   void login_returns429AfterTooManyFailedAttemptsFromSameIp() throws Exception {

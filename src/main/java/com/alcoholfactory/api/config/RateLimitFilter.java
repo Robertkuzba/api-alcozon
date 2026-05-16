@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -26,6 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Order(0)
 public class RateLimitFilter extends OncePerRequestFilter {
 
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> searchBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> orderTrackBuckets = new ConcurrentHashMap<>();
@@ -36,6 +40,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+        if (!rateLimitEnabled) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         String path = request.getRequestURI();
         String ip = clientIp(request);
 

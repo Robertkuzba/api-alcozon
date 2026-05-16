@@ -100,6 +100,13 @@ sequenceDiagram
 
 ---
 
+## Narzędzia (backend)
+
+- **CI:** GitHub Actions — `mvn verify` + profil `test` + Testcontainers (PostgreSQL).
+- **Smoke prod:** `.\scripts\smoke-prod.ps1` (health, produkty, login manager/employee, dostawy).
+
+---
+
 ## Checklist integracji per klient
 
 | Klient | URL prod | Priorytet |

@@ -1,0 +1,97 @@
+package com.alcoholfactory.api.order;
+
+import com.alcoholfactory.api.support.AbstractIntegrationTest;
+import com.alcoholfactory.api.support.AuthTestClient;
+import com.alcoholfactory.api.support.TestDataSeeder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class OrderStatusAndDeliveryMvcTest extends AbstractIntegrationTest {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    @Test
+    void inDelivery_createsDelivery_assignAndDeliver_syncsOrder() throws Exception {
+        AuthTestClient.Tokens customer = AuthTestClient.login(
+                mockMvc, TestDataSeeder.CUSTOMER_EMAIL, TestDataSeeder.CUSTOMER_PASSWORD);
+        AuthTestClient.Tokens employee = AuthTestClient.login(
+                mockMvc, TestDataSeeder.EMPLOYEE_EMAIL, TestDataSeeder.EMPLOYEE_PASSWORD);
+
+        long productId = TestDataSeeder.seededProductId();
+        String createBody = """
+                {
+                  "deliveryAddress": "ul. Testowa 10, Warszawa",
+                  "items": [{"productId": %d, "quantity": 1}]
+                }
+                """.formatted(productId);
+
+        MvcResult created = mockMvc.perform(post("/api/orders")
+                        .header("Authorization", "Bearer " + customer.accessToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUBMITTED"))
+                .andReturn();
+
+        long orderId = JSON.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        String bearerEmployee = employee.accessToken();
+
+        for (String status : new String[] {"IN_PRODUCTION", "IN_PACKING", "IN_DELIVERY"}) {
+            mockMvc.perform(patch("/api/orders/" + orderId + "/status")
+                            .header("Authorization", "Bearer " + bearerEmployee)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"status\":\"" + status + "\"}"))
+                    .andExpect(status().isOk());
+        }
+
+        MvcResult deliveries = mockMvc.perform(get("/api/deliveries")
+                        .header("Authorization", "Bearer " + bearerEmployee))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        long deliveryId = findDeliveryId(JSON.readTree(deliveries.getResponse().getContentAsString()), orderId);
+        long courierId = JSON.readTree(mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", "Bearer " + bearerEmployee))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(patch("/api/deliveries/" + deliveryId + "/assign")
+                        .header("Authorization", "Bearer " + bearerEmployee)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"courierId\":" + courierId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ASSIGNED"));
+
+        mockMvc.perform(patch("/api/deliveries/" + deliveryId + "/status")
+                        .header("Authorization", "Bearer " + bearerEmployee)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DELIVERED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DELIVERED"));
+
+        mockMvc.perform(get("/api/orders/" + orderId)
+                        .header("Authorization", "Bearer " + bearerEmployee))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DELIVERED"));
+    }
+
+    private static long findDeliveryId(JsonNode deliveries, long orderId) {
+        for (JsonNode d : deliveries) {
+            if (d.get("orderId").asLong() == orderId) {
+                return d.get("id").asLong();
+            }
+        }
+        throw new IllegalStateException("No delivery for order " + orderId);
+    }
+}

@@ -17,5 +17,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-      - name: Run tests
+      - name: Run tests (Testcontainers + PostgreSQL)
+        env:
+          SPRING_PROFILES_ACTIVE: test
         run: ./mvnw -B verify

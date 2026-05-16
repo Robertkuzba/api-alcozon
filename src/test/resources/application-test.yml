@@ -1,0 +1,4 @@
+# Profil testowy — integracje MockMvc + Testcontainers
+app:
+  rate-limit:
+    enabled: false

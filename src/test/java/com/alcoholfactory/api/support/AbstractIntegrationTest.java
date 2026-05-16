@@ -10,7 +10,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(properties = "spring.docker.compose.enabled=false")
+@SpringBootTest(properties = {
+        "spring.docker.compose.enabled=false",
+        "spring.profiles.active=test"
+})
 @AutoConfigureMockMvc
 @Testcontainers(disabledWithoutDocker = true)
 public abstract class AbstractIntegrationTest {

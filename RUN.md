@@ -123,11 +123,24 @@ Po bezczynności pierwsze żądanie może trwać **50–90 s** (timeout w narzę
 
 ### Smoke test po deployu
 
+**Skrypt (PowerShell):**
+
+```powershell
+.\scripts\smoke-prod.ps1
+# inny host: .\scripts\smoke-prod.ps1 -BaseUrl "https://api-alcozon.onrender.com"
+```
+
+Ręcznie:
+
 1. Logi startu: Flyway migracje (np. **V12** katalog produktów), brak `missing table`.
-2. `GET /actuator/health` → `{"status":"UP"}`.
+2. `GET /actuator/health` → `{"status":"UP"}` (w Render: Health Check Path → `/actuator/health`).
 3. `GET /api/orders/track?orderId=1&email=test@example.com` → 404 lub 200 (endpoint żyje).
 4. `POST /api/auth/login` → token; `POST /api/devices/fcm` z Bearer → **204** (gdy FCM skonfigurowany).
 5. STOMP: `CONNECT` z `Authorization: Bearer …` → subskrypcja `/user/queue/order-updates`.
+
+### CI (GitHub Actions)
+
+Przy każdym push/PR na `main`/`master`: `./mvnw verify` z profilem `test` i **Testcontainers** (PostgreSQL). Wymaga Dockera na runnerze (domyślnie na `ubuntu-latest`). Lokalnie bez Dockera testy integracyjne są pomijane (`disabledWithoutDocker`).
 
 ### Typowe błędy
 
