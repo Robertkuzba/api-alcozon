@@ -4,6 +4,12 @@ spring:
     compose:
       skip-in-tests: true
 
+# Stały sekret w testach (nie zależy od pustego JWT_SECRET w OS)
+jwt:
+  secret: test-jwt-secret-key-min-256-bits-for-hs256-integration-tests-only
+  access-ttl: 900
+  refresh-ttl: 2592000
+
 app:
   rate-limit:
     enabled: false
