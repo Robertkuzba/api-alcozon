@@ -2,6 +2,7 @@ package com.alcoholfactory.api.order;
 
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import com.alcoholfactory.api.support.AuthTestClient;
+import com.alcoholfactory.api.support.OrderRequestBodies;
 import com.alcoholfactory.api.support.TestDataSeeder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,12 +33,7 @@ class OrdersForCourierMvcTest extends AbstractIntegrationTest {
         long orderId = JSON.readTree(mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer " + customer.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "deliveryAddress": "ul. Kurierowa 5, 50-002 Wrocław, Polska",
-                                  "items": [{"productId": %d, "quantity": 1}]
-                                }
-                                """.formatted(productId)))
+                        .content(OrderRequestBodies.createWithDelivery(productId, "Klient Kurier")))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()

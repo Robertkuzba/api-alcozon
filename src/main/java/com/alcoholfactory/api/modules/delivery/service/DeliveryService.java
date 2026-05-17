@@ -6,6 +6,7 @@ import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.common.error.BusinessException;
 import com.alcoholfactory.api.modules.delivery.domain.Delivery;
 import com.alcoholfactory.api.modules.delivery.dto.DeliveryResponse;
+import com.alcoholfactory.api.modules.order.dto.OrderDeliveryDetailsResponse;
 import com.alcoholfactory.api.modules.delivery.repository.DeliveryRepository;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
@@ -87,6 +88,7 @@ public class DeliveryService {
                 d.getCourier() != null ? d.getCourier().getEmail() : null,
                 d.getStatus(),
                 d.getAddressSnapshot(),
+                OrderDeliveryDetailsResponse.from(d.getDeliveryDetails()),
                 d.getOrder().getCustomer().getEmail(),
                 d.getStartedAt(),
                 d.getDeliveredAt()

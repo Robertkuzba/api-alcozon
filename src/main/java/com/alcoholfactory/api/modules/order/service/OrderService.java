@@ -9,12 +9,16 @@ import com.alcoholfactory.api.modules.delivery.repository.DeliveryRepository;
 import com.alcoholfactory.api.modules.inventory.domain.ProductStock;
 import com.alcoholfactory.api.modules.inventory.repository.ProductStockRepository;
 import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
+import com.alcoholfactory.api.modules.order.domain.OrderDeliveryDetails;
 import com.alcoholfactory.api.modules.order.domain.OrderItem;
 import com.alcoholfactory.api.modules.order.dto.CreateOrderRequest;
+import com.alcoholfactory.api.modules.order.dto.DeliveryDetailsRequest;
+import com.alcoholfactory.api.modules.order.dto.OrderDeliveryDetailsResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderItemResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderLineRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
+import com.alcoholfactory.api.modules.order.util.DeliveryAddressFormatter;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
@@ -54,10 +58,13 @@ public class OrderService {
                     "Zamówienie wymaga konta CUSTOMER z potwierdzoną pełnoletnością (18+)");
         }
 
+        ResolvedDelivery resolved = resolveDelivery(req);
+
         CustomerOrder order = CustomerOrder.builder()
                 .customer(user)
                 .status(OrderStatus.SUBMITTED)
-                .deliveryAddress(req.deliveryAddress())
+                .deliveryAddress(resolved.formattedAddress())
+                .deliveryDetails(resolved.details())
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
@@ -208,9 +215,55 @@ public class OrderService {
                 .order(order)
                 .status(DeliveryStatus.PENDING)
                 .addressSnapshot(order.getDeliveryAddress())
+                .deliveryDetails(OrderDeliveryDetails.copyOf(order.getDeliveryDetails()))
                 .build();
         deliveryRepository.save(d);
     }
+
+    private ResolvedDelivery resolveDelivery(CreateOrderRequest req) {
+        if (req.delivery() != null) {
+            OrderDeliveryDetails details = toEmbeddable(req.delivery());
+            return new ResolvedDelivery(details, DeliveryAddressFormatter.formatMultiline(details));
+        }
+        if (req.deliveryAddress() != null && !req.deliveryAddress().isBlank()) {
+            return new ResolvedDelivery(null, req.deliveryAddress().trim());
+        }
+        throw new BusinessException(HttpStatus.BAD_REQUEST,
+                "Podaj obiekt delivery (dane dostawy) lub legacy pole deliveryAddress");
+    }
+
+    private static OrderDeliveryDetails toEmbeddable(DeliveryDetailsRequest req) {
+        String country = req.country();
+        if (country == null || country.isBlank()) {
+            country = "Polska";
+        }
+        return OrderDeliveryDetails.builder()
+                .recipientName(req.recipientName().trim())
+                .streetAddress(req.streetAddress().trim())
+                .city(req.city().trim())
+                .postalCode(normalizePostalCode(req.postalCode()))
+                .country(country.trim())
+                .deliveryNotes(trimToNull(req.deliveryNotes()))
+                .paymentMethod(trimToNull(req.paymentMethod()))
+                .build();
+    }
+
+    private static String normalizePostalCode(String postalCode) {
+        String raw = postalCode.trim().replace(" ", "");
+        if (raw.matches("^\\d{5}$")) {
+            return raw.substring(0, 2) + "-" + raw.substring(2);
+        }
+        return raw;
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private record ResolvedDelivery(OrderDeliveryDetails details, String formattedAddress) {}
 
     private boolean isAllowedTransition(OrderStatus from, OrderStatus to) {
         if (to == OrderStatus.CANCELLED) {
@@ -239,6 +292,7 @@ public class OrderService {
                 o.getCustomer().getId(),
                 o.getStatus(),
                 o.getDeliveryAddress(),
+                OrderDeliveryDetailsResponse.from(o.getDeliveryDetails()),
                 o.getTotalAmount(),
                 o.getCreatedAt(),
                 o.getDeliveredAt(),

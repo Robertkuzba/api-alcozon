@@ -2,8 +2,10 @@ package com.alcoholfactory.api.modules.delivery.domain;
 
 import com.alcoholfactory.api.common.domain.DeliveryStatus;
 import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
+import com.alcoholfactory.api.modules.order.domain.OrderDeliveryDetails;
 import com.alcoholfactory.api.modules.user.domain.User;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -50,6 +52,9 @@ public class Delivery {
 
     @Column(name = "address_snapshot", nullable = false, columnDefinition = "TEXT")
     private String addressSnapshot;
+
+    @Embedded
+    private OrderDeliveryDetails deliveryDetails;
 
     @Column(name = "started_at")
     private Instant startedAt;

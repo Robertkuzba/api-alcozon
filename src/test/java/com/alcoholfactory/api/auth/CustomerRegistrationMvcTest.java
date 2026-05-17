@@ -1,6 +1,7 @@
 package com.alcoholfactory.api.auth;
 
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
+import com.alcoholfactory.api.support.OrderRequestBodies;
 import com.alcoholfactory.api.support.TestDataSeeder;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -53,12 +54,7 @@ class CustomerRegistrationMvcTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer " + access)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "deliveryAddress": "ul. Testowa 1, 00-001 Warszawa",
-                                  "items": [{"productId": %d, "quantity": 1}]
-                                }
-                                """.formatted(productId)))
+                        .content(OrderRequestBodies.createWithDelivery(productId, "Jan Kowalski")))
                 .andExpect(status().isCreated());
     }
 

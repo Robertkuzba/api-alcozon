@@ -2,6 +2,7 @@ package com.alcoholfactory.api.delivery;
 
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import com.alcoholfactory.api.support.AuthTestClient;
+import com.alcoholfactory.api.support.OrderRequestBodies;
 import com.alcoholfactory.api.support.TestDataSeeder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,12 +31,7 @@ class DeliveryAssignAuthorizationMvcTest extends AbstractIntegrationTest {
         MvcResult created = mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer " + customer.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "deliveryAddress": "ul. Testowa 1, 50-001 Wrocław, Polska",
-                                  "items": [{"productId": %d, "quantity": 1}]
-                                }
-                                """.formatted(productId)))
+                        .content(OrderRequestBodies.createWithDelivery(productId, "Klient Testowy")))
                 .andExpect(status().isCreated())
                 .andReturn();
 

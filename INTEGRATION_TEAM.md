@@ -43,13 +43,28 @@
    - alternatywnie: `GET /api/deliveries/my` (JWT kuriera).
 6. **Kurier:** `PATCH /api/deliveries/{id}/status` → `{ "status": "DELIVERED" }` — synchronizuje zamówienie na `DELIVERED`.
 
-### Format adresu (rekomendowany)
+### Dane dostawy przy zamówieniu (Web)
 
-```
-ul. Nazwa 50, 50-001 Wrocław, Polska
+`POST /api/orders` — preferowany obiekt **`delivery`** (kolumny w DB + odpowiedź `deliveryDetails`):
+
+```json
+{
+  "items": [{"productId": 1, "quantity": 2}],
+  "delivery": {
+    "recipientName": "Jakub Janiec",
+    "streetAddress": "Wrocławska 12",
+    "city": "Wrocław",
+    "postalCode": "54-540",
+    "country": "Polska",
+    "deliveryNotes": "domek jednorodzinny",
+    "paymentMethod": "Płatność przy odbiorze"
+  }
+}
 ```
 
-API przechowuje jeden string (`deliveryAddress` / `addressSnapshot`); geokodowanie po stronie aplikacji mobilnej.
+- **Numer zamówienia** = pole **`id`** w odpowiedzi API (np. `ORD-{id}` po stronie UI). Nie wklejać numeru do `deliveryAddress`.
+- Legacy: samo `deliveryAddress` (tekst) — tylko kompatybilność wsteczna; brak `deliveryDetails` w odpowiedzi.
+- `deliveryAddress` / `addressSnapshot` — sformatowany tekst (mobilka); struktura w `deliveryDetails`.
 
 ---
 

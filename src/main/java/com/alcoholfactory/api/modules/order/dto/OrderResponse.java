@@ -11,6 +11,7 @@ public record OrderResponse(
         Long customerId,
         OrderStatus status,
         String deliveryAddress,
+        OrderDeliveryDetailsResponse deliveryDetails,
         BigDecimal totalAmount,
         Instant createdAt,
         Instant deliveredAt,

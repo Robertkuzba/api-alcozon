@@ -2,6 +2,7 @@ package com.alcoholfactory.api.order;
 
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import com.alcoholfactory.api.support.AuthTestClient;
+import com.alcoholfactory.api.support.OrderRequestBodies;
 import com.alcoholfactory.api.support.TestDataSeeder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,17 +30,11 @@ class OrderStatusAndDeliveryMvcTest extends AbstractIntegrationTest {
                 mockMvc, TestDataSeeder.MANAGER_EMAIL, TestDataSeeder.MANAGER_PASSWORD);
 
         long productId = TestDataSeeder.seededProductId();
-        String createBody = """
-                {
-                  "deliveryAddress": "ul. Testowa 10, Warszawa",
-                  "items": [{"productId": %d, "quantity": 1}]
-                }
-                """.formatted(productId);
 
         MvcResult created = mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer " + customer.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody))
+                        .content(OrderRequestBodies.createWithDelivery(productId, "Klient Testowy")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("SUBMITTED"))
                 .andReturn();

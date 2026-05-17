@@ -5,6 +5,7 @@ import com.alcoholfactory.api.modules.delivery.domain.Delivery;
 import com.alcoholfactory.api.modules.user.domain.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -53,6 +54,9 @@ public class CustomerOrder {
 
     @Column(name = "delivery_address", nullable = false, columnDefinition = "TEXT")
     private String deliveryAddress;
+
+    @Embedded
+    private OrderDeliveryDetails deliveryDetails;
 
     @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;

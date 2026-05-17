@@ -48,7 +48,7 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Złożenie zamówienia (wymaga CUSTOMER + potwierdzenie 18+)")
+    @Operation(summary = "Złożenie zamówienia (CUSTOMER + 18+; pole delivery ze strukturą adresu)")
     public OrderResponse create(
             @AuthenticationPrincipal AppUserDetails user,
             @Valid @RequestBody CreateOrderRequest request
