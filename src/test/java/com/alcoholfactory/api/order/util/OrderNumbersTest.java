@@ -13,4 +13,11 @@ class OrderNumbersTest {
         assertThat(OrderNumbers.parseId("ORD-430721")).isEqualTo(430721L);
         assertThat(OrderNumbers.parseId("430721")).isEqualTo(430721L);
     }
+
+    @Test
+    void temporaryPlaceholder_fitsOrderNumberColumn() {
+        String placeholder = OrderNumbers.temporaryPlaceholder();
+        assertThat(placeholder).hasSize(OrderNumbers.MAX_ORDER_NUMBER_LENGTH);
+        assertThat(placeholder).startsWith("T");
+    }
 }

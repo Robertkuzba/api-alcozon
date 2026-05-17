@@ -37,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -240,7 +239,7 @@ public class OrderService {
      * {@code order_number} jest NOT NULL w DB, a wartość {@code ORD-{id}} znana dopiero po pierwszym INSERT.
      */
     private void persistOrderWithSystemNumber(CustomerOrder order) {
-        order.setOrderNumber("TMP-" + UUID.randomUUID());
+        order.setOrderNumber(OrderNumbers.temporaryPlaceholder());
         orderRepository.saveAndFlush(order);
         order.setOrderNumber(OrderNumbers.format(order.getId()));
         orderRepository.save(order);
