@@ -24,6 +24,18 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     List<CustomerOrder> findByStatusOrderByCreatedAtDesc(OrderStatus status);
 
     @Query("""
+            SELECT DISTINCT o FROM CustomerOrder o
+            JOIN FETCH o.customer
+            JOIN com.alcoholfactory.api.modules.delivery.domain.Delivery d ON d.order = o
+            WHERE d.courier.id = :courierId AND o.status = :status
+            ORDER BY o.createdAt DESC
+            """)
+    List<CustomerOrder> findInDeliveryAssignedToCourier(
+            @Param("courierId") Long courierId,
+            @Param("status") OrderStatus status
+    );
+
+    @Query("""
             SELECT COALESCE(SUM(o.totalAmount), 0) FROM CustomerOrder o
             WHERE o.status IN :statuses AND o.createdAt >= :from AND o.createdAt <= :to
             """)

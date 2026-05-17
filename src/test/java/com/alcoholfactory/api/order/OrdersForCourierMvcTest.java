@@ -15,12 +15,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class OrderStatusAndDeliveryMvcTest extends AbstractIntegrationTest {
+class OrdersForCourierMvcTest extends AbstractIntegrationTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Test
-    void inDelivery_createsDelivery_assignAndDeliver_syncsOrder() throws Exception {
+    void forCourier_returnsAssignedInDeliveryOrders() throws Exception {
         AuthTestClient.Tokens customer = AuthTestClient.login(
                 mockMvc, TestDataSeeder.CUSTOMER_EMAIL, TestDataSeeder.CUSTOMER_PASSWORD);
         AuthTestClient.Tokens employee = AuthTestClient.login(
@@ -29,71 +29,63 @@ class OrderStatusAndDeliveryMvcTest extends AbstractIntegrationTest {
                 mockMvc, TestDataSeeder.MANAGER_EMAIL, TestDataSeeder.MANAGER_PASSWORD);
 
         long productId = TestDataSeeder.seededProductId();
-        String createBody = """
-                {
-                  "deliveryAddress": "ul. Testowa 10, Warszawa",
-                  "items": [{"productId": %d, "quantity": 1}]
-                }
-                """.formatted(productId);
-
-        MvcResult created = mockMvc.perform(post("/api/orders")
+        long orderId = JSON.readTree(mockMvc.perform(post("/api/orders")
                         .header("Authorization", "Bearer " + customer.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody))
+                        .content("""
+                                {
+                                  "deliveryAddress": "ul. Kurierowa 5, 50-002 Wrocław, Polska",
+                                  "items": [{"productId": %d, "quantity": 1}]
+                                }
+                                """.formatted(productId)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("SUBMITTED"))
-                .andReturn();
-
-        long orderId = JSON.readTree(created.getResponse().getContentAsString()).get("id").asLong();
-        String bearerEmployee = employee.accessToken();
+                .andReturn()
+                .getResponse()
+                .getContentAsString()).get("id").asLong();
 
         for (String status : new String[] {"IN_PRODUCTION", "IN_PACKING", "IN_DELIVERY"}) {
             mockMvc.perform(patch("/api/orders/" + orderId + "/status")
-                            .header("Authorization", "Bearer " + bearerEmployee)
+                            .header("Authorization", "Bearer " + employee.accessToken())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"status\":\"" + status + "\"}"))
                     .andExpect(status().isOk());
         }
 
-        MvcResult deliveries = mockMvc.perform(get("/api/deliveries")
-                        .header("Authorization", "Bearer " + bearerEmployee))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        long deliveryId = findDeliveryId(JSON.readTree(deliveries.getResponse().getContentAsString()), orderId);
         long courierId = JSON.readTree(mockMvc.perform(get("/api/users/me")
-                        .header("Authorization", "Bearer " + bearerEmployee))
+                        .header("Authorization", "Bearer " + employee.accessToken()))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString()).get("id").asLong();
 
+        long deliveryId = 0;
+        for (JsonNode d : JSON.readTree(mockMvc.perform(get("/api/deliveries")
+                        .header("Authorization", "Bearer " + manager.accessToken()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString())) {
+            if (d.get("orderId").asLong() == orderId) {
+                deliveryId = d.get("id").asLong();
+                break;
+            }
+        }
+
         mockMvc.perform(patch("/api/deliveries/" + deliveryId + "/assign")
                         .header("Authorization", "Bearer " + manager.accessToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"courierId\":" + courierId + "}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ASSIGNED"));
+                .andExpect(status().isOk());
 
-        mockMvc.perform(patch("/api/deliveries/" + deliveryId + "/status")
-                        .header("Authorization", "Bearer " + bearerEmployee)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"DELIVERED\"}"))
+        mockMvc.perform(get("/api/orders/for-courier/" + courierId)
+                        .header("Authorization", "Bearer " + employee.accessToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DELIVERED"));
+                .andExpect(jsonPath("$[0].id").value(orderId))
+                .andExpect(jsonPath("$[0].status").value("IN_DELIVERY"));
 
-        mockMvc.perform(get("/api/orders/" + orderId)
-                        .header("Authorization", "Bearer " + bearerEmployee))
+        mockMvc.perform(get("/api/orders/for-courier/" + courierId)
+                        .header("Authorization", "Bearer " + manager.accessToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DELIVERED"));
-    }
-
-    private static long findDeliveryId(JsonNode deliveries, long orderId) {
-        for (JsonNode d : deliveries) {
-            if (d.get("orderId").asLong() == orderId) {
-                return d.get("id").asLong();
-            }
-        }
-        throw new IllegalStateException("No delivery for order " + orderId);
+                .andExpect(jsonPath("$[0].id").value(orderId));
     }
 }

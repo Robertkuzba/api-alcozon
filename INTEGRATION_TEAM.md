@@ -1,116 +1,104 @@
-# Integracja zespołu — API (szkic)
+# Integracja zespołu — API
 
-> **Status:** dokument roboczy. Mapowanie statusów i flow dostaw **czeka na odpowiedź zespołu** (Faza 0). Po „OK” wdrożymy ETAP 1 w backendzie i zaktualizujemy ten plik.
+> **Status:** uzgodnione 17.05.2026 (odpowiedzi Bartek + Michał). Etap 1a wdrożony w backendzie.
 
 **Produkcja:** `https://api-alcozon.onrender.com`  
 **Swagger:** `/docs`  
-**Health (bez auth):** `GET /actuator/health`
+**Health:** `GET /actuator/health`
 
 ---
 
-## Konta demo (po migracji Flyway / DataInitializer)
+## Konta demo
 
 | Rola | E-mail | Hasło |
 |------|--------|--------|
-| Manager | `manager@example.com` | `Manager123!` |
-| Pracownik | `employee@example.com` | `Employee123!` |
-
-Klienci: rejestracja `POST /api/auth/register` lub gość `POST /api/auth/guest`.
+| Manager (desktop) | `manager@example.com` | `Manager123!` |
+| Pracownik / kurier (mobilka) | `employee@example.com` | `Employee123!` |
 
 ---
 
 ## Słownik statusów zamówienia (`OrderStatus`)
 
-| Status API | Znaczenie (propozycja) | Uwagi |
-|------------|------------------------|--------|
-| `SUBMITTED` | Złożone | Push FCM do staff przy nowym zamówieniu |
-| `IN_PRODUCTION` | W produkcji | |
-| `IN_PACKING` | Pakowanie / **propozycja: „gotowe do wysyłki”** | **Do potwierdzenia (Michał)** |
-| `IN_DELIVERY` | W dostawie | Dziś: `Delivery` tworzy się przy wejściu w ten status |
-| `DELIVERED` | Dostarczone | |
-| `CANCELLED` | Anulowane | |
+| Status API | PL (UI) |
+|------------|---------|
+| `SUBMITTED` | Złożone (klient, web) |
+| `IN_PRODUCTION` | W produkcji |
+| `IN_PACKING` | W pakowaniu |
+| `IN_DELIVERY` | W drodze — **tutaj desktop przypisuje kuriera** |
+| `DELIVERED` | Dostarczone |
+| `CANCELLED` | Anulowane |
 
-**Planowany ETAP 1 (po OK zespołu):** utworzenie rekordu `Delivery` przy `IN_PACKING`; `PATCH /api/deliveries/{id}/assign` tylko dla `MANAGER`.
+**Uwaga:** Rekord `Delivery` powstaje przy przejściu zamówienia na **`IN_DELIVERY`** (nie przy `IN_PACKING`).
 
 ---
 
-## Flow dostaw (docelowy — szkic)
+## Obieg MVP (uzgodniony)
 
-```mermaid
-sequenceDiagram
-  participant Web as Web (klient)
-  participant API as API
-  participant Mobile as Mobile (produkcja)
-  participant Desk as Desktop (manager)
+1. **Web (klient):** `POST /api/orders` → `SUBMITTED` + adres dostawy (tekst).
+2. **Mobilka (magazyn):** `PATCH /api/orders/{id}/status` → `IN_PRODUCTION` → `IN_PACKING` → `IN_DELIVERY`. Po `IN_DELIVERY` zamówienie znika z listy magazynu.
+3. **Backend:** przy `IN_DELIVERY` tworzy `Delivery` z `addressSnapshot` z zamówienia.
+4. **Desktop (MANAGER):** `PATCH /api/deliveries/{id}/assign` — body: `{ "courierId": <userId> }`.
+5. **Mobilka (kurier):** lista zleceń:
+   - `GET /api/orders/for-courier/{courierUserId}` — zamówienia `IN_DELIVERY` przypisane do kuriera (EMPLOYEE: tylko własne `userId` z JWT / `GET /api/users/me`);
+   - alternatywnie: `GET /api/deliveries/my` (JWT kuriera).
+6. **Kurier:** `PATCH /api/deliveries/{id}/status` → `{ "status": "DELIVERED" }` — synchronizuje zamówienie na `DELIVERED`.
 
-  Web->>API: POST /api/orders
-  Mobile->>API: PATCH status → IN_PACKING
-  Note over API: ETAP 1: tworzy Delivery
-  Desk->>API: PATCH /deliveries/{id}/assign (kurier)
-  Mobile->>API: GET /api/deliveries/my
-  Mobile->>API: PATCH status → DELIVERED
+### Format adresu (rekomendowany)
+
+```
+ul. Nazwa 50, 50-001 Wrocław, Polska
 ```
 
-**Stan API dziś:** `Delivery` powstaje przy przejściu zamówienia na `IN_DELIVERY`; przypisanie kuriera: `EMPLOYEE` lub `MANAGER`.
+API przechowuje jeden string (`deliveryAddress` / `addressSnapshot`); geokodowanie po stronie aplikacji mobilnej.
 
 ---
 
-## Endpointy kluczowe dla integracji
+## Role i uprawnienia
 
-### Auth
-- `POST /api/auth/login` — body: `{ "email", "password" }` → `accessToken`, `refreshToken`, `firstName`, `lastName`
-- `POST /api/auth/refresh` — `{ "refreshToken" }`
-- `GET /api/users/me` — Bearer
+| Akcja | Rola |
+|--------|------|
+| Zmiana statusu zamówienia (magazyn) | `EMPLOYEE`, `MANAGER` |
+| Przypisanie kuriera (`/deliveries/{id}/assign`) | **`MANAGER` tylko** |
+| Lista wszystkich dostaw | `EMPLOYEE`, `MANAGER` |
+| Moje dostawy (`/deliveries/my`) | `EMPLOYEE`, `MANAGER` (kurier) |
+| Zamówienia kuriera (`/orders/for-courier/{id}`) | `EMPLOYEE` (własne id), `MANAGER` (dowolne id) |
+| Oznaczenie dostarczone | przypisany kurier lub `MANAGER` |
 
-### Katalog (publiczne)
-- `GET /api/products?page=0&size=20&q=...`
+---
+
+## Endpointy — skrót
 
 ### Zamówienia
-- Klient: `POST /api/orders`, `GET /api/orders/my`
-- Staff: `GET /api/orders`, `PATCH /api/orders/{id}/status`
-- Publiczne śledzenie: `GET /api/orders/track?orderId=&email=` (rate limit 30/min/IP)
+- `POST /api/orders` — klient
+- `PATCH /api/orders/{id}/status` — staff
+- **`GET /api/orders/for-courier/{courierUserId}`** — lista `IN_DELIVERY` przypisanych do kuriera
+- `GET /api/orders/track?orderId=&email=` — publiczne śledzenie
 
 ### Dostawy
-- `GET /api/deliveries` — manager/staff
-- `GET /api/deliveries/my` — kurier (`is_courier` / rola)
-- `PATCH /api/deliveries/{id}/assign` — body: `{ "courierUserId" }`
-- `PATCH /api/deliveries/{id}/status` — `DELIVERED` synchronizuje zamówienie
+- `GET /api/deliveries` — wszystkie (staff)
+- `GET /api/deliveries/my` — JWT kuriera
+- **`PATCH /api/deliveries/{id}/assign`** — tylko MANAGER, body: `{ "courierId": number }`
+- `PATCH /api/deliveries/{id}/status` — `{ "status": "DELIVERED" | ... }`
 
-### Realtime
-- STOMP `ws(s)://host/ws`, subskrypcja `/user/queue/order-updates`, nagłówek CONNECT: `Authorization: Bearer <token>`
+### Auth (teraz)
+- `POST /api/auth/login`, `/refresh`, `GET /api/users/me`
 
-### Push (opcjonalnie)
-- `POST /api/devices/fcm` — rejestracja tokenu (staff)
-
----
-
-## CORS / env na Renderze
-
-- `APP_CORS_ALLOWED_ORIGINS` — np. `https://web-alkozon.vercel.app`
-- `JWT_SECRET` — wymagane na prod
-- `FIREBASE_SERVICE_ACCOUNT_JSON` — push (opcjonalnie)
-- `PORT` — ustawiane przez Render; aplikacja: `server.port=${PORT:8080}`
+### Auth (plan — Etap 1b, Michał)
+- 2FA: `deviceId` + kod 4-cyfrowy e-mail; **Mailpit** lokalnie (dev), SMTP na prod.
 
 ---
 
-## Faza 2 (nie w MVP — wymaga decyzji)
+## Środowiska
 
-- Logowanie staff: `deviceId` + 4-cyfrowy kod e-mail (SMTP, nowe endpointy)
-- Współrzędne GPS w API (dziś tylko `deliveryAddress` tekst)
-
----
-
-## Narzędzia (backend)
-
-- **CI:** GitHub Actions — `mvn verify` + profil `test` + Testcontainers (PostgreSQL).
-- **Smoke prod:** `.\scripts\smoke-prod.ps1` (health, produkty, login manager/employee, dostawy).
+| Klient | URL |
+|--------|-----|
+| API prod | https://api-alcozon.onrender.com |
+| Web | https://web-alkozon.vercel.app |
+| Mobilka | prod API (Render) — potwierdzone przez Michała |
 
 ---
 
-## Checklist integracji per klient
+## Narzędzia
 
-| Klient | URL prod | Priorytet |
-|--------|----------|-----------|
-| Web (Kuba) | już Vercel + CORS | ikony produktów, FCM opcjonalnie |
-| Mobile (Michał) | podmiana base URL | zamówienia + dostawy z API (dziś mock) |
-| Desktop (Bartek) | prod API | assign kuriera, test manager/employee |
+- CI: GitHub Actions (`mvn verify`, profil `test`, Testcontainers)
+- Smoke: `.\scripts\smoke-prod.ps1`

@@ -79,6 +79,16 @@ public class OrderController {
         return orderService.listAll(pageable);
     }
 
+    @GetMapping("/for-courier/{courierUserId}")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+    @Operation(summary = "Zamówienia IN_DELIVERY przypisane do kuriera (MANAGER: dowolne id; EMPLOYEE: tylko własne)")
+    public List<OrderResponse> forCourier(
+            @PathVariable @Positive Long courierUserId,
+            @AuthenticationPrincipal AppUserDetails user
+    ) {
+        return orderService.forCourier(courierUserId, user.getId(), isStaff(user));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Szczegóły zamówienia")

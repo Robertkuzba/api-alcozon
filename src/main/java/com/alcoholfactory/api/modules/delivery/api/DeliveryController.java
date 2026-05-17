@@ -5,6 +5,7 @@ import com.alcoholfactory.api.modules.delivery.dto.PatchDeliveryAssignRequest;
 import com.alcoholfactory.api.modules.delivery.dto.PatchDeliveryStatusRequest;
 import com.alcoholfactory.api.modules.delivery.service.DeliveryService;
 import com.alcoholfactory.api.security.AppUserDetails;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,8 @@ public class DeliveryController {
     }
 
     @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+    @PreAuthorize("hasRole('MANAGER')")
+    @Operation(summary = "Przypisanie kuriera do dostawy (tylko MANAGER / desktop)")
     public DeliveryResponse assign(@PathVariable Long id, @Valid @RequestBody PatchDeliveryAssignRequest req) {
         return deliveryService.assign(id, req.courierId());
     }

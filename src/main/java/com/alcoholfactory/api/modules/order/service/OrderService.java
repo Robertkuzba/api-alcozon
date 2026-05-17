@@ -131,6 +131,29 @@ public class OrderService {
                 .map(this::toResponse);
     }
 
+    /**
+     * Zamówienia {@link OrderStatus#IN_DELIVERY} z dostawą przypisaną do podanego kuriera.
+     * MANAGER: dowolny {@code courierUserId}; EMPLOYEE: tylko własne id.
+     */
+    @Transactional(readOnly = true)
+    public List<OrderResponse> forCourier(Long courierUserId, Long actorUserId, boolean manager) {
+        if (!manager && !courierUserId.equals(actorUserId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Brak dostępu");
+        }
+        User courier = userRepository.findById(courierUserId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
+        if (!courier.isActive()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "User inactive");
+        }
+        if (!courier.isCourier() && courier.getRole() != UserRole.EMPLOYEE && courier.getRole() != UserRole.MANAGER) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "User is not a courier");
+        }
+        return orderRepository.findInDeliveryAssignedToCourier(courierUserId, OrderStatus.IN_DELIVERY).stream()
+                .map(o -> orderRepository.findDetailById(o.getId()).orElse(o))
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public OrderResponse updateStatus(Long orderId, OrderStatus newStatus) {
         CustomerOrder order = orderRepository.findDetailById(orderId)
