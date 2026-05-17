@@ -41,6 +41,7 @@ public class AuthService {
         if (userRepository.existsByEmail(req.email())) {
             throw new BusinessException(HttpStatus.CONFLICT, "Email already registered");
         }
+        Instant now = Instant.now();
         User user = User.builder()
                 .email(req.email().toLowerCase().trim())
                 .passwordHash(passwordEncoder.encode(req.password()))
@@ -49,6 +50,7 @@ public class AuthService {
                 .firstName(req.firstName())
                 .lastName(req.lastName())
                 .courier(false)
+                .ageConfirmedAt(Boolean.TRUE.equals(req.ageConfirmed()) ? now : null)
                 .build();
         userRepository.save(user);
         return issueTokens(user);
@@ -119,11 +121,16 @@ public class AuthService {
     public TokenResponse confirmAgeAndReissue(AppUserDetails principal) {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
-        if (user.getRole() != UserRole.GUEST) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "Only guests can confirm age this way");
+        if (user.getRole() == UserRole.GUEST) {
+            user.setRole(UserRole.CUSTOMER);
+            user.setAgeConfirmedAt(Instant.now());
+        } else if (user.getRole() == UserRole.CUSTOMER) {
+            if (user.getAgeConfirmedAt() == null) {
+                user.setAgeConfirmedAt(Instant.now());
+            }
+        } else {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Age confirmation is only for guests and customers");
         }
-        user.setRole(UserRole.CUSTOMER);
-        user.setAgeConfirmedAt(Instant.now());
         userRepository.save(user);
         return issueTokens(user);
     }

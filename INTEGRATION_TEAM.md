@@ -80,9 +80,13 @@ API przechowuje jeden string (`deliveryAddress` / `addressSnapshot`); geokodowan
 - **`PATCH /api/deliveries/{id}/assign`** — tylko MANAGER, body: `{ "courierId": number }`
 - `PATCH /api/deliveries/{id}/status` — `{ "status": "DELIVERED" | ... }`
 
-### Auth — klienci
-- `POST /api/auth/login` — **tylko CUSTOMER / GUEST** (staff → 400)
-- `POST /api/auth/refresh`, `GET /api/users/me`
+### Auth — klienci (Web / Kuba)
+- `POST /api/auth/register` — body m.in. `ageConfirmed: true` (wymagane); przy `true` ustawiane `ageConfirmedAt`
+- `POST /api/auth/confirm-age` — **GUEST** (→ CUSTOMER) lub **CUSTOMER** bez `ageConfirmedAt` (idempotentne)
+- `POST /api/auth/login` — **tylko CUSTOMER / GUEST** (staff → 400); w odpowiedzi: `role`, `ageConfirmedAt`
+- `GET /api/users/me` — `role`, `ageConfirmedAt` (front: `CUSTOMER` + `ageConfirmedAt != null` = pełnoletni)
+- `POST /api/orders` — **403** bez roli CUSTOMER lub bez `ageConfirmedAt`
+- `POST /api/auth/refresh`
 
 ### Auth — staff (2FA, Etap 1b)
 

@@ -3,6 +3,8 @@ package com.alcoholfactory.api.modules.auth.dto;
 import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.modules.user.domain.User;
 
+import java.time.Instant;
+
 public record TokenResponse(
         String accessToken,
         String refreshToken,
@@ -12,7 +14,8 @@ public record TokenResponse(
         String email,
         UserRole role,
         String firstName,
-        String lastName
+        String lastName,
+        Instant ageConfirmedAt
 ) {
     public static TokenResponse of(String access, String refresh, long accessTtl, User user) {
         return new TokenResponse(
@@ -24,7 +27,8 @@ public record TokenResponse(
                 user.getEmail(),
                 user.getRole(),
                 user.getFirstName(),
-                user.getLastName()
+                user.getLastName(),
+                user.getAgeConfirmedAt()
         );
     }
 }

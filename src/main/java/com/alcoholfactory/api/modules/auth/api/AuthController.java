@@ -75,8 +75,8 @@ public class AuthController {
     }
 
     @PostMapping("/confirm-age")
-    @PreAuthorize("hasRole('GUEST')")
-    @Operation(summary = "Potwierdzenie 18+ (GUEST → CUSTOMER), zwraca nowe tokeny")
+    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER')")
+    @Operation(summary = "Potwierdzenie 18+ (GUEST→CUSTOMER lub ustawienie ageConfirmedAt), nowe tokeny")
     public TokenResponse confirmAge(@AuthenticationPrincipal AppUserDetails user) {
         return authService.confirmAgeAndReissue(user);
     }
