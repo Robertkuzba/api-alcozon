@@ -12,4 +12,7 @@ public final class ValidationPatterns {
 
     /** Kod pocztowy PL: 00-000 lub 00000 */
     public static final String POSTAL_CODE_PL = "^[0-9]{2}-?[0-9]{3}$";
+
+    /** Numer zamówienia z klienta (Web): cyfry, litery, myślnik */
+    public static final String CLIENT_ORDER_NUMBER = "^[A-Za-z0-9-]{1,50}$";
 }

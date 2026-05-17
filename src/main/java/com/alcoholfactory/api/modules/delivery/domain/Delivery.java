@@ -50,6 +50,12 @@ public class Delivery {
     @Column(nullable = false, length = 32)
     private DeliveryStatus status;
 
+    @Column(name = "order_number", nullable = false, length = 32)
+    private String orderNumber;
+
+    @Column(name = "client_order_number", length = 50)
+    private String clientOrderNumber;
+
     @Column(name = "address_snapshot", nullable = false, columnDefinition = "TEXT")
     private String addressSnapshot;
 

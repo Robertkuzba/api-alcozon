@@ -9,6 +9,9 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record CreateOrderRequest(
+        @Pattern(regexp = ValidationPatterns.CLIENT_ORDER_NUMBER, message = "Invalid client order number")
+        @Size(max = 50)
+        String clientOrderNumber,
         @NotEmpty @Valid List<OrderLineRequest> items,
         @Valid DeliveryDetailsRequest delivery,
         @Pattern(regexp = ValidationPatterns.SAFE_TEXT, message = "Invalid characters in address")

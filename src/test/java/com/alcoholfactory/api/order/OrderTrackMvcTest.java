@@ -6,6 +6,7 @@ import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
+import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,8 @@ class OrderTrackMvcTest extends AbstractIntegrationTest {
             .build()
     );
     orderId = order.getId();
+    order.setOrderNumber(OrderNumbers.format(orderId));
+    orderRepository.save(order);
   }
 
   @Test
@@ -63,6 +66,7 @@ class OrderTrackMvcTest extends AbstractIntegrationTest {
             .param("email", CUSTOMER_EMAIL))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.orderId").value(orderId))
+        .andExpect(jsonPath("$.orderNumber").value("ORD-" + orderId))
         .andExpect(jsonPath("$.status").value("IN_PRODUCTION"));
   }
 

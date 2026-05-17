@@ -19,6 +19,7 @@ import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderLineRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
 import com.alcoholfactory.api.modules.order.util.DeliveryAddressFormatter;
+import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
@@ -59,10 +60,15 @@ public class OrderService {
         }
 
         ResolvedDelivery resolved = resolveDelivery(req);
+        String clientOrderNumber = normalizeClientOrderNumber(req.clientOrderNumber());
+        if (clientOrderNumber != null && orderRepository.existsByClientOrderNumber(clientOrderNumber)) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Numer zamówienia jest już użyty");
+        }
 
         CustomerOrder order = CustomerOrder.builder()
                 .customer(user)
                 .status(OrderStatus.SUBMITTED)
+                .clientOrderNumber(clientOrderNumber)
                 .deliveryAddress(resolved.formattedAddress())
                 .deliveryDetails(resolved.details())
                 .totalAmount(BigDecimal.ZERO)
@@ -91,6 +97,7 @@ public class OrderService {
         }
         order.setTotalAmount(total);
         orderRepository.save(order);
+        assignOrderNumber(order);
         notificationPublisher.publishOrderStatusChange(user.getEmail(), order.getId(), OrderStatus.SUBMITTED);
         fcmStaffOrderPushService.notifyNewOrderSubmitted(order.getId());
         return toResponse(orderRepository.findDetailById(order.getId()).orElse(order));
@@ -110,7 +117,14 @@ public class OrderService {
         if (!order.getCustomer().getEmail().equalsIgnoreCase(normalized)) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "Order not found");
         }
-        return new OrderTrackResponse(order.getId(), order.getStatus(), order.getCreatedAt(), order.getUpdatedAt());
+        return new OrderTrackResponse(
+                order.getId(),
+                resolveOrderNumber(order),
+                order.getClientOrderNumber(),
+                order.getStatus(),
+                order.getCreatedAt(),
+                order.getUpdatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -213,11 +227,32 @@ public class OrderService {
         }
         Delivery d = Delivery.builder()
                 .order(order)
+                .orderNumber(resolveOrderNumber(order))
+                .clientOrderNumber(order.getClientOrderNumber())
                 .status(DeliveryStatus.PENDING)
                 .addressSnapshot(order.getDeliveryAddress())
                 .deliveryDetails(OrderDeliveryDetails.copyOf(order.getDeliveryDetails()))
                 .build();
         deliveryRepository.save(d);
+    }
+
+    private void assignOrderNumber(CustomerOrder order) {
+        order.setOrderNumber(OrderNumbers.format(order.getId()));
+        orderRepository.save(order);
+    }
+
+    private static String resolveOrderNumber(CustomerOrder order) {
+        if (order.getOrderNumber() != null && !order.getOrderNumber().isBlank()) {
+            return order.getOrderNumber();
+        }
+        return OrderNumbers.format(order.getId());
+    }
+
+    private static String normalizeClientOrderNumber(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return raw.trim();
     }
 
     private ResolvedDelivery resolveDelivery(CreateOrderRequest req) {
@@ -289,6 +324,8 @@ public class OrderService {
                 .toList();
         return new OrderResponse(
                 o.getId(),
+                resolveOrderNumber(o),
+                o.getClientOrderNumber(),
                 o.getCustomer().getId(),
                 o.getStatus(),
                 o.getDeliveryAddress(),

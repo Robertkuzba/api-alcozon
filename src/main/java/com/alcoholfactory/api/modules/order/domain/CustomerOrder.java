@@ -52,6 +52,12 @@ public class CustomerOrder {
     @Column(nullable = false, length = 32)
     private OrderStatus status;
 
+    @Column(name = "order_number", nullable = false, unique = true, length = 32)
+    private String orderNumber;
+
+    @Column(name = "client_order_number", length = 50)
+    private String clientOrderNumber;
+
     @Column(name = "delivery_address", nullable = false, columnDefinition = "TEXT")
     private String deliveryAddress;
 

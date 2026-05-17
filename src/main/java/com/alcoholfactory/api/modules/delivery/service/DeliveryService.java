@@ -7,6 +7,7 @@ import com.alcoholfactory.api.common.error.BusinessException;
 import com.alcoholfactory.api.modules.delivery.domain.Delivery;
 import com.alcoholfactory.api.modules.delivery.dto.DeliveryResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderDeliveryDetailsResponse;
+import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.modules.delivery.repository.DeliveryRepository;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
@@ -81,9 +82,14 @@ public class DeliveryService {
     }
 
     private DeliveryResponse toResponse(Delivery d) {
+        String orderNumber = d.getOrderNumber() != null && !d.getOrderNumber().isBlank()
+                ? d.getOrderNumber()
+                : OrderNumbers.format(d.getOrder().getId());
         return new DeliveryResponse(
                 d.getId(),
                 d.getOrder().getId(),
+                orderNumber,
+                d.getClientOrderNumber() != null ? d.getClientOrderNumber() : d.getOrder().getClientOrderNumber(),
                 d.getCourier() != null ? d.getCourier().getId() : null,
                 d.getCourier() != null ? d.getCourier().getEmail() : null,
                 d.getStatus(),
