@@ -119,6 +119,32 @@ Render ustawia też **`PORT`** (np. `10000`) — aplikacja musi nasłuchiwać na
 | `APP_OPENAPI_SERVER_URL` | URL API w Swagger (domyślnie `https://api-alcozon.onrender.com`) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **Cały** JSON service account (Firebase Admin). Puste = FCM wyłączone (log: `FCM disabled`). Nie ustawiaj `{}`. |
 
+### 2FA staff (e-mail) na Renderze
+
+Domyślne `spring.mail.host=localhost:1025` to **Mailpit tylko lokalnie**. Na Renderze **nie ma** Mailpit — health check SMTP dawał `DOWN` i deploy wisiał (naprawione: `management.health.mail.enabled=false`).
+
+**Szybki start (demo):**
+
+| Zmienna | Wartość |
+|---------|---------|
+| `MAIL_LOG_ONLY` | `true` — kody 2FA w logach Rendera (nie na prawdziwy mail) |
+| `APP_TWO_FACTOR_ENABLED` | `true` (domyślnie) |
+
+**Docelowo (prawdziwy SMTP, np. SendGrid):**
+
+| Zmienna | Przykład |
+|---------|----------|
+| `MAIL_LOG_ONLY` | `false` |
+| `SMTP_HOST` | `smtp.sendgrid.net` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USERNAME` | `apikey` |
+| `SMTP_PASSWORD` | klucz API |
+| `SMTP_AUTH` | `true` |
+| `SMTP_STARTTLS` | `true` |
+| `MAIL_FROM` | `noreply@twojadomena.pl` |
+
+Health check path w Renderze: **`/actuator/health`** (initial delay ~180–300 s przy cold start).
+
 Render ustawia zmienne jako zmienne środowiskowe procesu Javy — **nie potrzebujesz** pliku `.env` na serwerze.
 
 ### Cold start (darmowy plan)

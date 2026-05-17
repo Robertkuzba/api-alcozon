@@ -119,3 +119,7 @@ management:
     health:
       probes:
         enabled: true
+  health:
+    # Na Renderze nie ma Mailpit (localhost:1025) — bez tego health = DOWN i deploy się wywala
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
