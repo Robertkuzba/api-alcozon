@@ -21,11 +21,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final Set<UserRole> STAFF_ROLES = EnumSet.of(UserRole.EMPLOYEE, UserRole.MANAGER);
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -57,6 +61,17 @@ public class AuthService {
         if (!user.isActive() || !passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid credentials");
         }
+        if (STAFF_ROLES.contains(user.getRole())) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "Staff must use POST /api/auth/staff/login with deviceId"
+            );
+        }
+        return issueTokens(user);
+    }
+
+    @Transactional
+    public TokenResponse issueTokensForUser(User user) {
         return issueTokens(user);
     }
 

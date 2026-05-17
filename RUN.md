@@ -16,6 +16,10 @@ docker compose ps
 
 Baza: `alcohol_db`, użytkownik: `app`, hasło: `secret`, port: `5432`.
 
+**IntelliJ — czerwone podkreślenia w `V13__…sql` / encjach JPA:** to zwykle inspekcja IDE, nie błąd Flywaya. Ustaw dialekt SQL: *Settings → Languages & Frameworks → SQL Dialects* → katalog `src/main/resources/db/migration` → **PostgreSQL** (szablon: skopiuj `config/intellij/sqlDialects.xml` do `.idea/sqlDialects.xml`). Dla JPA: *Database* → połącz z `localhost:5432/alcohol_db` → po pierwszym `spring-boot:run` (Flyway V13) → *Assign Data Sources* w oknie Persistence.
+
+**Mailpit (2FA e-mail dla staff):** ten sam `docker compose up -d` uruchamia Mailpit — SMTP `localhost:1025`, skrzynka http://localhost:8025
+
 ## 2. Aplikacja
 
 ```bash

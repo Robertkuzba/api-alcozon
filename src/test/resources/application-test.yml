@@ -1,4 +1,13 @@
 # Profil testowy — integracje MockMvc + Testcontainers
+spring:
+  docker:
+    compose:
+      skip-in-tests: true
+
 app:
   rate-limit:
     enabled: false
+  two-factor:
+    enabled: false
+  mail:
+    log-only: true

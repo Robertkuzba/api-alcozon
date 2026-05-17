@@ -7,7 +7,9 @@ param(
     [string] $ManagerEmail = "manager@example.com",
     [string] $ManagerPassword = "Manager123!",
     [string] $EmployeeEmail = "employee@example.com",
-    [string] $EmployeePassword = "Employee123!"
+    [string] $EmployeePassword = "Employee123!",
+    [string] $StaffDeviceId = "smoke-prod-device",
+    [string] $Staff2faCode = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,6 +45,27 @@ function Assert-Ok($label, $scriptBlock) {
     }
 }
 
+function Get-StaffAccessToken {
+    param([string] $Email, [string] $Password)
+    $login = Invoke-Api -Method POST -Path "/api/auth/staff/login" -Body @{
+        email    = $Email
+        password = $Password
+        deviceId = $StaffDeviceId
+    }
+    if (-not $login.verificationRequired) {
+        return $login.tokens.accessToken
+    }
+    if (-not $Staff2faCode) {
+        throw "2FA required; pass -Staff2faCode or trust device via staff/verify-device once"
+    }
+    $verified = Invoke-Api -Method POST -Path "/api/auth/staff/verify-device" -Body @{
+        challengeId = $login.challengeId
+        deviceId    = $StaffDeviceId
+        code        = $Staff2faCode
+    }
+    return $verified.accessToken
+}
+
 function Assert-Warn($label, $scriptBlock) {
     try {
         & $scriptBlock
@@ -67,11 +90,8 @@ Assert-Ok "GET /api/products (public)" {
     if ($null -eq $p.content) { throw "missing page content" }
 }
 
-Assert-Ok "POST /api/auth/login (manager)" {
-    $script:ManagerToken = (Invoke-Api -Method POST -Path "/api/auth/login" -Body @{
-        email    = $ManagerEmail
-        password = $ManagerPassword
-    }).accessToken
+Assert-Ok "POST /api/auth/staff/login (manager)" {
+    $script:ManagerToken = Get-StaffAccessToken -Email $ManagerEmail -Password $ManagerPassword
     if (-not $script:ManagerToken) { throw "no accessToken" }
 }
 
@@ -84,11 +104,8 @@ Assert-Ok "GET /api/deliveries (manager)" {
     Invoke-Api -Method GET -Path "/api/deliveries" -Headers @{ Authorization = "Bearer $script:ManagerToken" } | Out-Null
 }
 
-$employeeOk = Assert-Warn "POST /api/auth/login (employee)" {
-    $script:EmployeeToken = (Invoke-Api -Method POST -Path "/api/auth/login" -Body @{
-        email    = $EmployeeEmail
-        password = $EmployeePassword
-    }).accessToken
+$employeeOk = Assert-Warn "POST /api/auth/staff/login (employee)" {
+    $script:EmployeeToken = Get-StaffAccessToken -Email $EmployeeEmail -Password $EmployeePassword
     if (-not $script:EmployeeToken) { throw "no accessToken" }
 }
 

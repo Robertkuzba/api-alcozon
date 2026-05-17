@@ -3,8 +3,12 @@ package com.alcoholfactory.api.modules.auth.api;
 import com.alcoholfactory.api.modules.auth.dto.LoginRequest;
 import com.alcoholfactory.api.modules.auth.dto.RefreshRequest;
 import com.alcoholfactory.api.modules.auth.dto.RegisterRequest;
+import com.alcoholfactory.api.modules.auth.dto.StaffLoginRequest;
+import com.alcoholfactory.api.modules.auth.dto.StaffLoginResponse;
 import com.alcoholfactory.api.modules.auth.dto.TokenResponse;
+import com.alcoholfactory.api.modules.auth.dto.VerifyDeviceRequest;
 import com.alcoholfactory.api.modules.auth.service.AuthService;
+import com.alcoholfactory.api.modules.auth.service.StaffAuthService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final StaffAuthService staffAuthService;
 
     @PostMapping("/register")
     @Operation(summary = "Rejestracja (CUSTOMER)")
@@ -33,9 +38,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Logowanie")
+    @Operation(summary = "Logowanie (CUSTOMER / GUEST — nie dla staff)")
     public TokenResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/staff/login")
+    @Operation(summary = "Logowanie pracownika (EMPLOYEE/MANAGER) — 2FA e-mail + deviceId")
+    public StaffLoginResponse staffLogin(@Valid @RequestBody StaffLoginRequest request) {
+        return staffAuthService.staffLogin(request);
+    }
+
+    @PostMapping("/staff/verify-device")
+    @Operation(summary = "Potwierdzenie kodu 4-cyfrowego z e-maila (po staff/login)")
+    public TokenResponse verifyDevice(@Valid @RequestBody VerifyDeviceRequest request) {
+        return staffAuthService.verifyDevice(request);
     }
 
     @PostMapping("/refresh")

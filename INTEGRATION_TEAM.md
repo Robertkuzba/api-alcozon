@@ -1,6 +1,6 @@
 # Integracja zespołu — API
 
-> **Status:** uzgodnione 17.05.2026 (odpowiedzi Bartek + Michał). Etap 1a wdrożony w backendzie.
+> **Status:** uzgodnione 17.05.2026. Etap 1a (dostawy) + **1b (2FA staff)** wdrożone w backendzie.
 
 **Produkcja:** `https://api-alcozon.onrender.com`  
 **Swagger:** `/docs`  
@@ -80,11 +80,27 @@ API przechowuje jeden string (`deliveryAddress` / `addressSnapshot`); geokodowan
 - **`PATCH /api/deliveries/{id}/assign`** — tylko MANAGER, body: `{ "courierId": number }`
 - `PATCH /api/deliveries/{id}/status` — `{ "status": "DELIVERED" | ... }`
 
-### Auth (teraz)
-- `POST /api/auth/login`, `/refresh`, `GET /api/users/me`
+### Auth — klienci
+- `POST /api/auth/login` — **tylko CUSTOMER / GUEST** (staff → 400)
+- `POST /api/auth/refresh`, `GET /api/users/me`
 
-### Auth (plan — Etap 1b, Michał)
-- 2FA: `deviceId` + kod 4-cyfrowy e-mail; **Mailpit** lokalnie (dev), SMTP na prod.
+### Auth — staff (2FA, Etap 1b)
+
+1. `POST /api/auth/staff/login` — body:
+   ```json
+   { "email": "employee@example.com", "password": "…", "deviceId": "uuid-lub-stały-id" }
+   ```
+   - Zaufane urządzenie → od razu `tokens` (jak zwykły login).
+   - Nowe urządzenie → `verificationRequired: true`, `challengeId`, e-mail z kodem **4 cyfry**.
+
+2. `POST /api/auth/staff/verify-device` — body:
+   ```json
+   { "challengeId": "uuid", "deviceId": "…", "code": "1234" }
+   ```
+   → `TokenResponse` (access + refresh). Urządzenie zapisane jako zaufane.
+
+**Lokalnie:** Mailpit — `docker compose up` → SMTP `localhost:1025`, UI http://localhost:8025  
+**Prod:** zmienne `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` (np. SendGrid); awaryjnie `MAIL_LOG_ONLY=true` (kod w logach — tylko dev/debug).
 
 ---
 
