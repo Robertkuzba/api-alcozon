@@ -20,4 +20,9 @@ public interface CustomOrderRepository extends JpaRepository<CustomOrder, Long> 
 
     @Query("SELECT c FROM CustomOrder c JOIN FETCH c.customer LEFT JOIN FETCH c.assignedTo WHERE c.id = :id")
     Optional<CustomOrder> findFetchedById(@Param("id") Long id);
+
+    boolean existsByClientOrderNumber(String clientOrderNumber);
+
+    @Query("SELECT c FROM CustomOrder c JOIN FETCH c.customer WHERE c.clientOrderNumber = :clientOrderNumber")
+    Optional<CustomOrder> findByClientOrderNumberWithCustomer(@Param("clientOrderNumber") String clientOrderNumber);
 }

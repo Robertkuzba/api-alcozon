@@ -46,6 +46,9 @@ public class CustomOrder {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "client_order_number", length = 50)
+    private String clientOrderNumber;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> preferences;

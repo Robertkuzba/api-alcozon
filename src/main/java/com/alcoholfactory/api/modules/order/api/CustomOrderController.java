@@ -2,6 +2,7 @@ package com.alcoholfactory.api.modules.order.api;
 
 import com.alcoholfactory.api.modules.order.dto.CreateCustomOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.CustomOrderResponse;
+import com.alcoholfactory.api.modules.order.dto.CustomOrderTrackResponse;
 import com.alcoholfactory.api.modules.order.dto.PatchAssignRequest;
 import com.alcoholfactory.api.modules.order.dto.PatchCustomOrderStatusRequest;
 import com.alcoholfactory.api.modules.order.service.CustomOrderService;
@@ -20,8 +21,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 import java.util.Set;
@@ -44,6 +49,15 @@ public class CustomOrderController {
             @Valid @RequestBody CreateCustomOrderRequest request
     ) {
         return customOrderService.create(user.getId(), request);
+    }
+
+    @GetMapping("/track")
+    @Operation(summary = "Publiczne śledzenie zamówienia własnego (id, CUSTOM-{id} lub clientOrderNumber + e-mail)")
+    public CustomOrderTrackResponse trackPublic(
+            @RequestParam @NotBlank String orderId,
+            @RequestParam @NotBlank @Email String email
+    ) {
+        return customOrderService.trackPublic(orderId, email);
     }
 
     @GetMapping("/my")

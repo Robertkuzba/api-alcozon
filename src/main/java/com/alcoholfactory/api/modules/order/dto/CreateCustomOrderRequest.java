@@ -12,5 +12,8 @@ public record CreateCustomOrderRequest(
         @Pattern(regexp = ValidationPatterns.SAFE_TEXT)
         @Size(max = 5000)
         String description,
+        @Pattern(regexp = ValidationPatterns.CLIENT_ORDER_NUMBER, message = "Invalid client order number")
+        @Size(max = 50)
+        String clientOrderNumber,
         Map<String, Object> preferences
 ) {}

@@ -115,7 +115,32 @@ Typy: `ORDER_SUBMITTED`, `ORDER_STATUS_CHANGED`, `DISPATCH_PENDING`, `DELIVERY_A
 - **`clientOrderNumber`** — jedyny numer widoczny dla klienta (Web generuje np. 6 cyfr); kolumna `client_order_number`.
 - **`id`** — klucz techniczny (staff, wewnętrzne API).
 - Adres tylko w **`deliveryDetails`** (kolumny strukturalne w DB) — bez `delivery_address` / `order_number` / `ORD-{id}`.
-- `GET /api/orders/track?orderId=` — akceptuje `id`, `ORD-{id}` (kompatybilność) lub `clientOrderNumber`.
+- `GET /api/orders/track?orderId=` — zamówienie sklepowe: `id`, `ORD-{id}` lub `clientOrderNumber`.
+- `GET /api/custom-orders/track?orderId=` — zamówienie własne: `id`, `CUSTOM-{id}` lub `clientOrderNumber` + e-mail.
+- `POST /api/custom-orders` — pole opcjonalne `clientOrderNumber` (lub w `preferences.clientOrderNumber`).
+
+### Web (Kuba) — zmiany po stronie frontu (nie w tym repo API)
+
+Backend **nie** łączy śledzenia sklepu z custom w jednym endpoincie — front musi:
+
+1. **Checkout (tylko custom w koszyku)**  
+   - Wysłać `clientOrderNumber` w `POST /api/custom-orders` (pole top-level **lub** `preferences.clientOrderNumber`).  
+   - Na ekranie sukcesu pokazać **ten sam** numer (6 cyfr), nie `CUSTOM-{id}` jako domyślny, chyba że chcecie oba (numer + id techniczne).
+
+2. **Śledzenie publiczne** (`order-status`)  
+   - `GET /api/orders/track?orderId=&email=` — tylko zamówienia sklepowe (`orders`).  
+   - Przy **404** wywołać `GET /api/custom-orders/track?orderId=&email=` (ten sam `orderId` / numer klienta / `CUSTOM-{id}`).  
+   - Mapowanie statusów custom: `PENDING`→złożone, `IN_PROGRESS`→w realizacji, `COMPLETED`→dostarczone, `REJECTED`→anulowane.
+
+3. **Moje zamówienia**  
+   - Pobrać `GET /api/orders/my` **oraz** `GET /api/custom-orders/my`, scalić listę (np. po `createdAt`).  
+   - W UI oznaczyć wpisy custom (np. „Zamówienie własne” + `description`).
+
+4. **Odpowiedź API**  
+   - `CustomOrderResponse` zawiera teraz `clientOrderNumber` (nie tylko `id`).  
+   - `deliveryAddress` w zwykłym zamówieniu już **nie** ma w API — tylko `deliveryDetails` (sklep).
+
+Migracja: **V18** (`custom_orders.client_order_number`).
 
 ---
 

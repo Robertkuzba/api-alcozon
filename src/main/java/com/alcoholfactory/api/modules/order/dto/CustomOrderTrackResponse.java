@@ -3,16 +3,12 @@ package com.alcoholfactory.api.modules.order.dto;
 import com.alcoholfactory.api.common.domain.CustomOrderStatus;
 
 import java.time.Instant;
-import java.util.Map;
 
-public record CustomOrderResponse(
-        Long id,
+public record CustomOrderTrackResponse(
+        long customOrderId,
         String clientOrderNumber,
-        Long customerId,
-        String description,
-        Map<String, Object> preferences,
         CustomOrderStatus status,
-        Long assignedToId,
+        String description,
         Instant createdAt,
         Instant updatedAt
 ) {}

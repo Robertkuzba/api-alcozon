@@ -6,19 +6,25 @@ import com.alcoholfactory.api.common.error.BusinessException;
 import com.alcoholfactory.api.modules.order.domain.CustomOrder;
 import com.alcoholfactory.api.modules.order.dto.CreateCustomOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.CustomOrderResponse;
+import com.alcoholfactory.api.modules.order.dto.CustomOrderTrackResponse;
 import com.alcoholfactory.api.modules.order.repository.CustomOrderRepository;
+import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class CustomOrderService {
+
+    private static final String PREF_CLIENT_ORDER_NUMBER = "clientOrderNumber";
 
     private final CustomOrderRepository customOrderRepository;
     private final UserRepository userRepository;
@@ -30,14 +36,44 @@ public class CustomOrderService {
         if (user.getRole() != UserRole.CUSTOMER || user.getAgeConfirmedAt() == null) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Wymagane CUSTOMER z potwierdzonym wiekiem");
         }
+
+        String clientOrderNumber = resolveClientOrderNumber(req.clientOrderNumber(), req.preferences());
+        if (clientOrderNumber != null && customOrderRepository.existsByClientOrderNumber(clientOrderNumber)) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Numer zamówienia jest już użyty");
+        }
+
         CustomOrder co = CustomOrder.builder()
                 .customer(user)
                 .description(req.description())
+                .clientOrderNumber(clientOrderNumber)
                 .preferences(req.preferences())
                 .status(CustomOrderStatus.PENDING)
                 .build();
         customOrderRepository.save(co);
         return toResponse(co);
+    }
+
+    /**
+     * Publiczne śledzenie zamówienia własnego: {@code id}, {@code CUSTOM-{id}} lub {@code clientOrderNumber}.
+     */
+    @Transactional(readOnly = true)
+    public CustomOrderTrackResponse trackPublic(String orderRef, String email) {
+        String normalized = email == null ? "" : email.trim().toLowerCase();
+        if (normalized.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Invalid email");
+        }
+        CustomOrder order = resolveCustomOrder(orderRef);
+        if (!order.getCustomer().getEmail().equalsIgnoreCase(normalized)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+        return new CustomOrderTrackResponse(
+                order.getId(),
+                displayClientOrderNumber(order),
+                order.getStatus(),
+                order.getDescription(),
+                order.getCreatedAt(),
+                order.getUpdatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -80,9 +116,48 @@ public class CustomOrderService {
         return toResponse(customOrderRepository.save(co));
     }
 
+    private CustomOrder resolveCustomOrder(String orderRef) {
+        String raw = orderRef.trim();
+        if (raw.regionMatches(true, 0, "CUSTOM-", 0, "CUSTOM-".length())) {
+            raw = raw.substring("CUSTOM-".length());
+        }
+        Long id = OrderNumbers.parseId(raw);
+        if (id != null) {
+            var byId = customOrderRepository.findFetchedById(id);
+            if (byId.isPresent()) {
+                return byId.get();
+            }
+        }
+        return customOrderRepository.findByClientOrderNumberWithCustomer(raw)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
+    }
+
+    private static String resolveClientOrderNumber(String explicit, Map<String, Object> preferences) {
+        if (StringUtils.hasText(explicit)) {
+            return explicit.trim();
+        }
+        if (preferences == null) {
+            return null;
+        }
+        Object raw = preferences.get(PREF_CLIENT_ORDER_NUMBER);
+        if (raw == null) {
+            return null;
+        }
+        String value = raw.toString().trim();
+        return value.isEmpty() ? null : value;
+    }
+
+    private static String displayClientOrderNumber(CustomOrder co) {
+        if (StringUtils.hasText(co.getClientOrderNumber())) {
+            return co.getClientOrderNumber();
+        }
+        return "CUSTOM-" + co.getId();
+    }
+
     private CustomOrderResponse toResponse(CustomOrder co) {
         return new CustomOrderResponse(
                 co.getId(),
+                displayClientOrderNumber(co),
                 co.getCustomer().getId(),
                 co.getDescription(),
                 co.getPreferences(),
