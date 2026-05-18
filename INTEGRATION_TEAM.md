@@ -32,11 +32,38 @@
 
 ---
 
+## Real-time (STOMP + opcjonalnie FCM)
+
+Endpoint WebSocket: `wss://api-alcozon.onrender.com/ws` (lokalnie `ws://localhost:8080/ws`).  
+Przy `CONNECT`: nagłówek STOMP `Authorization: Bearer <accessToken>`.
+
+| Subskrypcja | Kto | Kiedy wysyłane |
+|-------------|-----|----------------|
+| `/user/queue/order-updates` | CUSTOMER (Web) | Każda zmiana statusu zamówienia klienta |
+| `/topic/orders/staff` | EMPLOYEE, MANAGER (mobilka magazyn) | Nowe zamówienie, zmiana statusu, anulowanie, dostarczenie |
+| `/topic/orders/dispatch` | **MANAGER** (desktop) | Zamówienie `IN_DELIVERY` — czas przypisać kuriera |
+| `/user/queue/courier-deliveries` | Kurier (EMPLOYEE/MANAGER) | Po `PATCH /deliveries/{id}/assign` oraz po `DELIVERED` |
+
+**Payload** (JSON): `type`, `orderId`, `clientOrderNumber`, `status`, opcjonalnie `deliveryId`, `courierUserId`.  
+Typy: `ORDER_SUBMITTED`, `ORDER_STATUS_CHANGED`, `DISPATCH_PENDING`, `DELIVERY_ASSIGNED`, `ORDER_DELIVERED`, `ORDER_CANCELLED`.
+
+**FCM** (`POST /api/devices/fcm`): jeśli na Renderze jest `FIREBASE_SERVICE_ACCOUNT_JSON` — push przy nowym zamówieniu (staff), `IN_DELIVERY` (manager), przypisaniu kuriera (ten kurier). Bez Firebase — tylko STOMP.
+
+**Szkielety kodu klienta:**
+
+| Klient | Ścieżka |
+|--------|---------|
+| Referencja TS (Desktop / kopiuj) | [`docs/realtime-skeletons/`](docs/realtime-skeletons/) |
+| Web (Kuba) | `web-Alkozon/src/lib/realtime/` — `orderUpdates`, `staffOrderUpdates`, `dispatchOrderUpdates`, `courierOrderUpdates` |
+| Mobilka (Michał) | `mobile-alkozon/Alkozon/lib/services/order_realtime_service.dart` + `order_realtime_example.dart` |
+
+---
+
 ## Obieg MVP (uzgodniony)
 
 1. **Web (klient):** `POST /api/orders` → `SUBMITTED` + adres dostawy (tekst).
 2. **Mobilka (magazyn):** `PATCH /api/orders/{id}/status` → `IN_PRODUCTION` → `IN_PACKING` → `IN_DELIVERY`. Po `IN_DELIVERY` zamówienie znika z listy magazynu.
-3. **Backend:** przy `IN_DELIVERY` tworzy `Delivery` z `addressSnapshot` z zamówienia.
+3. **Backend:** przy `IN_DELIVERY` tworzy rekord `Delivery` (adres w `deliveryDetails`).
 4. **Desktop (MANAGER):** `PATCH /api/deliveries/{id}/assign` — body: `{ "courierId": <userId> }`.
 5. **Mobilka (kurier):** lista zleceń:
    - `GET /api/orders/for-courier/{courierUserId}` — zamówienia `IN_DELIVERY` przypisane do kuriera (EMPLOYEE: tylko własne `userId` z JWT / `GET /api/users/me`);

@@ -16,4 +16,7 @@ public interface FcmDeviceTokenRepository extends JpaRepository<FcmDeviceToken, 
 
     @Query("select distinct t.token from FcmDeviceToken t join t.user u where u.role in :roles and u.active = true")
     List<String> findDistinctTokensByUserRoles(@Param("roles") Collection<UserRole> roles);
+
+    @Query("select distinct t.token from FcmDeviceToken t join t.user u where u.id = :userId and u.active = true")
+    List<String> findDistinctTokensByUserId(@Param("userId") long userId);
 }

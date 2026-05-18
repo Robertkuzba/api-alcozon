@@ -17,13 +17,19 @@ import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class FcmStaffOrderPushService {
+
+    static final Set<UserRole> STAFF_ROLES = Set.of(UserRole.EMPLOYEE, UserRole.MANAGER);
+    static final Set<UserRole> MANAGER_ROLES = Set.of(UserRole.MANAGER);
 
     private final FirebaseProperties firebaseProperties;
     private final FcmDeviceTokenRepository fcmDeviceTokenRepository;
@@ -53,23 +59,36 @@ public class FcmStaffOrderPushService {
         }
     }
 
-    /**
-     * Powiadomienie push do pracowników/managerów z zarejestrowanym tokenem FCM (gdy Firebase jest skonfigurowany).
-     */
-    public void notifyNewOrderSubmitted(long orderId) {
+    public void notifyStaffRoles(
+            String title,
+            String body,
+            OrderRealtimeEvent event,
+            Collection<UserRole> roles
+    ) {
         if (firebaseMessaging == null) {
             return;
         }
-        List<String> tokens = fcmDeviceTokenRepository.findDistinctTokensByUserRoles(
-                Set.of(UserRole.EMPLOYEE, UserRole.MANAGER)
-        );
+        List<String> tokens = fcmDeviceTokenRepository.findDistinctTokensByUserRoles(roles);
+        sendMulticast(title, body, event, tokens);
+    }
+
+    public void notifyUser(long userId, String title, String body, OrderRealtimeEvent event) {
+        if (firebaseMessaging == null) {
+            return;
+        }
+        List<String> tokens = fcmDeviceTokenRepository.findDistinctTokensByUserId(userId);
+        sendMulticast(title, body, event, tokens);
+    }
+
+    private void sendMulticast(String title, String body, OrderRealtimeEvent event, List<String> tokens) {
         if (tokens.isEmpty()) {
             return;
         }
         Notification notification = Notification.builder()
-                .setTitle("Nowe zamówienie")
-                .setBody("Zamówienie #" + orderId + " (SUBMITTED)")
+                .setTitle(title)
+                .setBody(body)
                 .build();
+        Map<String, String> data = toDataMap(event);
         int batchSize = 500;
         for (int i = 0; i < tokens.size(); i += batchSize) {
             List<String> batch = tokens.subList(i, Math.min(i + batchSize, tokens.size()));
@@ -77,13 +96,29 @@ public class FcmStaffOrderPushService {
                 MulticastMessage message = MulticastMessage.builder()
                         .addAllTokens(batch)
                         .setNotification(notification)
-                        .putData("orderId", Long.toString(orderId))
-                        .putData("status", "SUBMITTED")
+                        .putAllData(data)
                         .build();
                 firebaseMessaging.sendEachForMulticast(message);
             } catch (Exception e) {
                 log.warn("FCM send batch failed: {}", e.toString());
             }
         }
+    }
+
+    private static Map<String, String> toDataMap(OrderRealtimeEvent event) {
+        Map<String, String> data = new HashMap<>();
+        data.put("type", event.type().name());
+        data.put("orderId", Long.toString(event.orderId()));
+        data.put("status", event.status());
+        if (event.clientOrderNumber() != null) {
+            data.put("clientOrderNumber", event.clientOrderNumber());
+        }
+        if (event.deliveryId() != null) {
+            data.put("deliveryId", event.deliveryId().toString());
+        }
+        if (event.courierUserId() != null) {
+            data.put("courierUserId", event.courierUserId().toString());
+        }
+        return data;
     }
 }

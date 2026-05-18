@@ -26,7 +26,7 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
     private final CustomerOrderRepository orderRepository;
-    private final com.alcoholfactory.api.notification.OrderNotificationPublisher notificationPublisher;
+    private final com.alcoholfactory.api.notification.OrderRealtimeNotifier orderRealtimeNotifier;
 
     @Transactional(readOnly = true)
     public List<DeliveryResponse> all() {
@@ -47,6 +47,7 @@ public class DeliveryService {
         d.setCourier(courier);
         d.setStatus(DeliveryStatus.ASSIGNED);
         deliveryRepository.save(d);
+        orderRealtimeNotifier.onDeliveryAssigned(d);
         return toResponse(d);
     }
 
@@ -70,11 +71,7 @@ public class DeliveryService {
             order.setStatus(OrderStatus.DELIVERED);
             order.setDeliveredAt(Instant.now());
             orderRepository.save(order);
-            notificationPublisher.publishOrderStatusChange(
-                    order.getCustomer().getEmail(),
-                    order.getId(),
-                    OrderStatus.DELIVERED
-            );
+            orderRealtimeNotifier.onOrderDelivered(order, d);
         }
         deliveryRepository.save(d);
         return toResponse(d);

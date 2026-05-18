@@ -37,8 +37,13 @@ Baza: `alcohol_db`, użytkownik: `app`, hasło: `secret`, port: `5432`.
 ## 4. WebSocket (STOMP)
 
 - Endpoint: `ws://localhost:8080/ws`
-- Subskrypcja klienta (po zalogowaniu): `/user/queue/order-updates`
 - Przy `CONNECT` przekaż nagłówek STOMP: `Authorization: Bearer <accessToken>`
+- Subskrypcje (zależnie od roli w JWT):
+  - **CUSTOMER (Web):** `/user/queue/order-updates`
+  - **Magazyn (mobilka):** `/topic/orders/staff`
+  - **Desktop (manager):** `/topic/orders/staff` + `/topic/orders/dispatch`
+  - **Kurier:** `/user/queue/courier-deliveries`
+- Payload: `type`, `orderId`, `clientOrderNumber`, `status`, opcjonalnie `deliveryId`, `courierUserId` — szczegóły w [INTEGRATION_TEAM.md](INTEGRATION_TEAM.md)
 
 ## 5. Dane startowe
 

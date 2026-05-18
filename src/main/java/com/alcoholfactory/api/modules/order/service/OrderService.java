@@ -24,8 +24,7 @@ import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
-import com.alcoholfactory.api.notification.FcmStaffOrderPushService;
-import com.alcoholfactory.api.notification.OrderNotificationPublisher;
+import com.alcoholfactory.api.notification.OrderRealtimeNotifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,8 +45,7 @@ public class OrderService {
     private final ProductStockRepository productStockRepository;
     private final UserRepository userRepository;
     private final DeliveryRepository deliveryRepository;
-    private final OrderNotificationPublisher notificationPublisher;
-    private final FcmStaffOrderPushService fcmStaffOrderPushService;
+    private final OrderRealtimeNotifier orderRealtimeNotifier;
 
     @Transactional
     public OrderResponse create(Long userId, CreateOrderRequest req) {
@@ -94,8 +92,7 @@ public class OrderService {
         }
         order.setTotalAmount(total);
         orderRepository.save(order);
-        notificationPublisher.publishOrderStatusChange(user.getEmail(), order.getId(), OrderStatus.SUBMITTED);
-        fcmStaffOrderPushService.notifyNewOrderSubmitted(order.getId());
+        orderRealtimeNotifier.onOrderCreated(order);
         return toResponse(orderRepository.findDetailById(order.getId()).orElse(order));
     }
 
@@ -192,7 +189,14 @@ public class OrderService {
             });
         }
         orderRepository.save(order);
-        notificationPublisher.publishOrderStatusChange(order.getCustomer().getEmail(), order.getId(), newStatus);
+        if (newStatus == OrderStatus.DELIVERED) {
+            deliveryRepository.findByOrderId(orderId).ifPresentOrElse(
+                    d -> orderRealtimeNotifier.onOrderDelivered(order, d),
+                    () -> orderRealtimeNotifier.onOrderStatusChanged(order, newStatus)
+            );
+        } else {
+            orderRealtimeNotifier.onOrderStatusChanged(order, newStatus);
+        }
         return toResponse(orderRepository.findDetailById(orderId).orElseThrow());
     }
 
@@ -212,7 +216,7 @@ public class OrderService {
         }
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
-        notificationPublisher.publishOrderStatusChange(order.getCustomer().getEmail(), order.getId(), OrderStatus.CANCELLED);
+        orderRealtimeNotifier.onOrderCancelled(order);
         return toResponse(orderRepository.findDetailById(order.getId()).orElseThrow());
     }
 
