@@ -14,6 +14,28 @@
 |------|--------|--------|
 | Manager (desktop) | `manager@example.com` | `Manager123!` |
 | Pracownik / kurier (mobilka) | `employee@example.com` | `Employee123!` |
+| Klient (demo zamówienia) | `customer@example.com` | `Customer123!` |
+
+### Zamówienia demo (seed przy starcie API, `DemoOrderSeeder`)
+
+Numer klienta (`clientOrderNumber`) **701101–701111** — ponowny seed pomijany, jeśli istnieje `701101`.
+
+| Nr | Status | Kurier (`employee@`) | Adres (skrót) |
+|----|--------|----------------------|---------------|
+| 701101 | SUBMITTED | — | ul. Oławska 15 |
+| 701102 | IN_PRODUCTION | — | Kazimierza Wielkiego 27 |
+| 701103 | IN_PACKING | — | Hubska 52 |
+| 701104 | IN_DELIVERY | **tak** | **Cesarzowicka 100, 52-408** |
+| 701105 | IN_DELIVERY | **nie** | **Cesarzowicka 100, 52-408** |
+| 701106 | IN_DELIVERY | **tak** | Świdnicka 12 |
+| 701107 | IN_DELIVERY | **nie** | Legnicka 58 |
+| 701108 | IN_DELIVERY | **tak** | Borowska 11 |
+| 701109 | IN_DELIVERY | **nie** | Grabiszyńska 241 |
+| 701110 | DELIVERED | tak | Klecińska 4 |
+| 701111 | CANCELLED | — | Na Grobli 20 |
+
+- Kurier: `GET /api/orders/for-courier/{id}` — tylko **701104, 701106, 701108** (+ 701110 jeśli jeszcze IN_DELIVERY w UI; seed ma DELIVERED).
+- Desktop: `GET /api/deliveries` — wszystkie `IN_DELIVERY`, m.in. **701105, 701107, 701109** bez kuriera (`courierId` null).
 
 ---
 
