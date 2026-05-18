@@ -64,9 +64,9 @@ public class OrderController {
     }
 
     @GetMapping("/track")
-    @Operation(summary = "Publiczne śledzenie zamówienia (orderId + e-mail klienta, bez JWT)")
+    @Operation(summary = "Publiczne śledzenie (id, ORD-{id} lub clientOrderNumber + e-mail, bez JWT)")
     public OrderTrackResponse trackPublic(
-            @RequestParam @Positive Long orderId,
+            @RequestParam @NotBlank String orderId,
             @RequestParam @NotBlank @Email String email
     ) {
         return orderService.trackPublic(orderId, email);
@@ -91,13 +91,13 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Szczegóły zamówienia")
+    @Operation(summary = "Szczegóły zamówienia (id, ORD-{id} lub clientOrderNumber)")
     public OrderResponse get(
-            @PathVariable Long id,
+            @PathVariable String id,
             @AuthenticationPrincipal AppUserDetails user
     ) {
         boolean staff = isStaff(user);
-        return orderService.getById(id, user.getId(), staff);
+        return orderService.getByRef(id, user.getId(), staff);
     }
 
     @PatchMapping("/{id}/status")
@@ -110,7 +110,7 @@ public class OrderController {
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(summary = "Anulowanie zamówienia (tylko SUBMITTED)")
-    public OrderResponse cancel(@PathVariable Long id, @AuthenticationPrincipal AppUserDetails user) {
+    public OrderResponse cancel(@PathVariable String id, @AuthenticationPrincipal AppUserDetails user) {
         return orderService.cancel(id, user.getId());
     }
 

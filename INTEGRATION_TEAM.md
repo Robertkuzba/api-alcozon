@@ -63,12 +63,10 @@
 }
 ```
 
-- **`clientOrderNumber`** — numer z frontu (Web), kolumna `client_order_number` (np. `"430721"`). **To pole ma być w osobnej „komórce” w UI.**
-- **`orderNumber`** — numer systemowy `ORD-{id}` po zapisie (kolumna `order_number`).
-- **`id`** — klucz techniczny w API / trackingu (`orderId` w query).
-- Nie wklejać numeru ani adresu do jednego pola tekstowego.
-- Legacy: samo `deliveryAddress` (tekst) — tylko kompatybilność wsteczna; brak `deliveryDetails` w odpowiedzi.
-- `deliveryAddress` / `addressSnapshot` — sformatowany tekst (mobilka); struktura w `deliveryDetails`.
+- **`clientOrderNumber`** — jedyny numer widoczny dla klienta (Web generuje np. 6 cyfr); kolumna `client_order_number`.
+- **`id`** — klucz techniczny (staff, wewnętrzne API).
+- Adres tylko w **`deliveryDetails`** (kolumny strukturalne w DB) — bez `delivery_address` / `order_number` / `ORD-{id}`.
+- `GET /api/orders/track?orderId=` — akceptuje `id`, `ORD-{id}` (kompatybilność) lub `clientOrderNumber`.
 
 ---
 

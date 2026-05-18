@@ -9,7 +9,6 @@ import java.time.Instant;
  */
 public record OrderTrackResponse(
         long orderId,
-        String orderNumber,
         String clientOrderNumber,
         OrderStatus status,
         Instant createdAt,

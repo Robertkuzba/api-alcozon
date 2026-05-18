@@ -26,13 +26,11 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
                                 TestDataSeeder.seededProductId(), "Jakub Janiec", "430721")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.orderNumber").isNotEmpty())
-                .andExpect(jsonPath("$.clientOrderNumber").isNotEmpty())
+                .andExpect(jsonPath("$.clientOrderNumber").value("430721"))
                 .andExpect(jsonPath("$.deliveryDetails.recipientName").value("Jakub Janiec"))
                 .andExpect(jsonPath("$.deliveryDetails.city").value("Wrocław"))
                 .andExpect(jsonPath("$.deliveryDetails.postalCode").value("50-001"))
-                .andExpect(jsonPath("$.deliveryDetails.paymentMethod").value("Płatność przy odbiorze"))
-                .andExpect(jsonPath("$.deliveryAddress").isString());
+                .andExpect(jsonPath("$.deliveryDetails.paymentMethod").value("Płatność przy odbiorze"));
     }
 
     @Test
@@ -55,7 +53,6 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + customer.accessToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(orderId))
-                .andExpect(jsonPath("$.orderNumber").value("ORD-" + orderId))
                 .andExpect(jsonPath("$.clientOrderNumber").value("430721"))
                 .andExpect(jsonPath("$.deliveryDetails.recipientName").value("Jan Kowalski"));
     }

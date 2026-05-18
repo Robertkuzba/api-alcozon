@@ -18,7 +18,6 @@ import com.alcoholfactory.api.modules.order.dto.OrderItemResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderLineRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
-import com.alcoholfactory.api.modules.order.util.DeliveryAddressFormatter;
 import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.product.domain.Product;
@@ -59,9 +58,8 @@ public class OrderService {
                     "Zamówienie wymaga konta CUSTOMER z potwierdzoną pełnoletnością (18+)");
         }
 
-        ResolvedDelivery resolved = resolveDelivery(req);
-        String clientOrderNumber = normalizeClientOrderNumber(req.clientOrderNumber());
-        if (clientOrderNumber != null && orderRepository.existsByClientOrderNumber(clientOrderNumber)) {
+        String clientOrderNumber = req.clientOrderNumber().trim();
+        if (orderRepository.existsByClientOrderNumber(clientOrderNumber)) {
             throw new BusinessException(HttpStatus.CONFLICT, "Numer zamówienia jest już użyty");
         }
 
@@ -69,8 +67,7 @@ public class OrderService {
                 .customer(user)
                 .status(OrderStatus.SUBMITTED)
                 .clientOrderNumber(clientOrderNumber)
-                .deliveryAddress(resolved.formattedAddress())
-                .deliveryDetails(resolved.details())
+                .deliveryDetails(toEmbeddable(req.delivery()))
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
@@ -96,7 +93,7 @@ public class OrderService {
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(line.quantity())));
         }
         order.setTotalAmount(total);
-        persistOrderWithSystemNumber(order);
+        orderRepository.save(order);
         notificationPublisher.publishOrderStatusChange(user.getEmail(), order.getId(), OrderStatus.SUBMITTED);
         fcmStaffOrderPushService.notifyNewOrderSubmitted(order.getId());
         return toResponse(orderRepository.findDetailById(order.getId()).orElse(order));
@@ -104,21 +101,20 @@ public class OrderService {
 
     /**
      * Publiczne śledzenie: ten sam komunikat błędu przy złym ID lub złym e-mailu (ograniczenie enumeracji).
+     * {@code orderRef}: id techniczne, {@code ORD-{id}} (kompatybilność) lub {@code clientOrderNumber}.
      */
     @Transactional(readOnly = true)
-    public OrderTrackResponse trackPublic(Long orderId, String email) {
+    public OrderTrackResponse trackPublic(String orderRef, String email) {
         String normalized = email == null ? "" : email.trim().toLowerCase();
         if (normalized.isEmpty()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Invalid email");
         }
-        CustomerOrder order = orderRepository.findByIdWithCustomer(orderId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
+        CustomerOrder order = resolveOrder(orderRef);
         if (!order.getCustomer().getEmail().equalsIgnoreCase(normalized)) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "Order not found");
         }
         return new OrderTrackResponse(
                 order.getId(),
-                resolveOrderNumber(order),
                 order.getClientOrderNumber(),
                 order.getStatus(),
                 order.getCreatedAt(),
@@ -135,8 +131,8 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public OrderResponse getById(Long orderId, Long currentUserId, boolean managerOrEmployee) {
-        CustomerOrder order = orderRepository.findDetailById(orderId)
+    public OrderResponse getByRef(String orderRef, Long currentUserId, boolean managerOrEmployee) {
+        CustomerOrder order = orderRepository.findDetailById(resolveOrder(orderRef).getId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
         if (!managerOrEmployee && !order.getCustomer().getId().equals(currentUserId)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Brak dostępu do zamówienia");
@@ -201,8 +197,8 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse cancel(Long orderId, Long customerId) {
-        CustomerOrder order = orderRepository.findDetailById(orderId)
+    public OrderResponse cancel(String orderRef, Long customerId) {
+        CustomerOrder order = orderRepository.findDetailById(resolveOrder(orderRef).getId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
         if (!order.getCustomer().getId().equals(customerId)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Brak dostępu");
@@ -217,7 +213,7 @@ public class OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
         notificationPublisher.publishOrderStatusChange(order.getCustomer().getEmail(), order.getId(), OrderStatus.CANCELLED);
-        return toResponse(orderRepository.findDetailById(orderId).orElseThrow());
+        return toResponse(orderRepository.findDetailById(order.getId()).orElseThrow());
     }
 
     private void ensureDelivery(CustomerOrder order) {
@@ -226,49 +222,24 @@ public class OrderService {
         }
         Delivery d = Delivery.builder()
                 .order(order)
-                .orderNumber(resolveOrderNumber(order))
                 .clientOrderNumber(order.getClientOrderNumber())
                 .status(DeliveryStatus.PENDING)
-                .addressSnapshot(order.getDeliveryAddress())
                 .deliveryDetails(OrderDeliveryDetails.copyOf(order.getDeliveryDetails()))
                 .build();
         deliveryRepository.save(d);
     }
 
-    /**
-     * {@code order_number} jest NOT NULL w DB, a wartość {@code ORD-{id}} znana dopiero po pierwszym INSERT.
-     */
-    private void persistOrderWithSystemNumber(CustomerOrder order) {
-        order.setOrderNumber(OrderNumbers.temporaryPlaceholder());
-        orderRepository.saveAndFlush(order);
-        order.setOrderNumber(OrderNumbers.format(order.getId()));
-        orderRepository.save(order);
-    }
-
-    private static String resolveOrderNumber(CustomerOrder order) {
-        if (order.getOrderNumber() != null && !order.getOrderNumber().isBlank()) {
-            return order.getOrderNumber();
+    private CustomerOrder resolveOrder(String orderRef) {
+        String raw = orderRef.trim();
+        Long id = OrderNumbers.parseId(raw);
+        if (id != null) {
+            var byId = orderRepository.findByIdWithCustomer(id);
+            if (byId.isPresent()) {
+                return byId.get();
+            }
         }
-        return OrderNumbers.format(order.getId());
-    }
-
-    private static String normalizeClientOrderNumber(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        return raw.trim();
-    }
-
-    private ResolvedDelivery resolveDelivery(CreateOrderRequest req) {
-        if (req.delivery() != null) {
-            OrderDeliveryDetails details = toEmbeddable(req.delivery());
-            return new ResolvedDelivery(details, DeliveryAddressFormatter.formatMultiline(details));
-        }
-        if (req.deliveryAddress() != null && !req.deliveryAddress().isBlank()) {
-            return new ResolvedDelivery(null, req.deliveryAddress().trim());
-        }
-        throw new BusinessException(HttpStatus.BAD_REQUEST,
-                "Podaj obiekt delivery (dane dostawy) lub legacy pole deliveryAddress");
+        return orderRepository.findByClientOrderNumberWithCustomer(raw)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Order not found"));
     }
 
     private static OrderDeliveryDetails toEmbeddable(DeliveryDetailsRequest req) {
@@ -302,8 +273,6 @@ public class OrderService {
         return value.trim();
     }
 
-    private record ResolvedDelivery(OrderDeliveryDetails details, String formattedAddress) {}
-
     private boolean isAllowedTransition(OrderStatus from, OrderStatus to) {
         if (to == OrderStatus.CANCELLED) {
             return false;
@@ -328,11 +297,9 @@ public class OrderService {
                 .toList();
         return new OrderResponse(
                 o.getId(),
-                resolveOrderNumber(o),
                 o.getClientOrderNumber(),
                 o.getCustomer().getId(),
                 o.getStatus(),
-                o.getDeliveryAddress(),
                 OrderDeliveryDetailsResponse.from(o.getDeliveryDetails()),
                 o.getTotalAmount(),
                 o.getCreatedAt(),

@@ -3,10 +3,10 @@ package com.alcoholfactory.api.order;
 import com.alcoholfactory.api.common.domain.OrderStatus;
 import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
+import com.alcoholfactory.api.modules.order.domain.OrderDeliveryDetails;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
-import com.alcoholfactory.api.modules.order.util.OrderNumbers;
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OrderTrackMvcTest extends AbstractIntegrationTest {
 
   private static final String CUSTOMER_EMAIL = "track-customer@example.com";
+  private static final String CLIENT_ORDER_NUMBER = "246077";
 
   @Autowired
   UserRepository userRepository;
@@ -50,24 +51,39 @@ class OrderTrackMvcTest extends AbstractIntegrationTest {
         CustomerOrder.builder()
             .customer(customer)
             .status(OrderStatus.IN_PRODUCTION)
-            .deliveryAddress("ul. Testowa 1, Warszawa")
+            .clientOrderNumber(CLIENT_ORDER_NUMBER)
+            .deliveryDetails(OrderDeliveryDetails.builder()
+                .recipientName("Jan Test")
+                .streetAddress("ul. Testowa 1")
+                .city("Warszawa")
+                .postalCode("00-001")
+                .country("Polska")
+                .build())
             .totalAmount(new BigDecimal("99.99"))
             .build()
     );
     orderId = order.getId();
-    order.setOrderNumber(OrderNumbers.format(orderId));
-    orderRepository.save(order);
   }
 
   @Test
-  void trackPublic_returnsOrderWhenEmailMatches() throws Exception {
+  void trackPublic_returnsOrderWhenEmailMatchesByTechnicalId() throws Exception {
     mockMvc.perform(get("/api/orders/track")
             .param("orderId", Long.toString(orderId))
             .param("email", CUSTOMER_EMAIL))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.orderId").value(orderId))
-        .andExpect(jsonPath("$.orderNumber").value("ORD-" + orderId))
+        .andExpect(jsonPath("$.clientOrderNumber").value(CLIENT_ORDER_NUMBER))
         .andExpect(jsonPath("$.status").value("IN_PRODUCTION"));
+  }
+
+  @Test
+  void trackPublic_returnsOrderWhenEmailMatchesByClientOrderNumber() throws Exception {
+    mockMvc.perform(get("/api/orders/track")
+            .param("orderId", CLIENT_ORDER_NUMBER)
+            .param("email", CUSTOMER_EMAIL))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.orderId").value(orderId))
+        .andExpect(jsonPath("$.clientOrderNumber").value(CLIENT_ORDER_NUMBER));
   }
 
   @Test

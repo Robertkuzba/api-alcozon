@@ -17,6 +17,9 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
 
     boolean existsByClientOrderNumber(String clientOrderNumber);
 
+    @Query("SELECT o FROM CustomerOrder o JOIN FETCH o.customer WHERE o.clientOrderNumber = :clientOrderNumber")
+    Optional<CustomerOrder> findByClientOrderNumberWithCustomer(@Param("clientOrderNumber") String clientOrderNumber);
+
     @Query("SELECT o FROM CustomerOrder o JOIN FETCH o.customer WHERE o.id = :id")
     Optional<CustomerOrder> findByIdWithCustomer(@Param("id") Long id);
 

@@ -12,12 +12,11 @@ class OrderNumbersTest {
         assertThat(OrderNumbers.format(430721L)).isEqualTo("ORD-430721");
         assertThat(OrderNumbers.parseId("ORD-430721")).isEqualTo(430721L);
         assertThat(OrderNumbers.parseId("430721")).isEqualTo(430721L);
+        assertThat(OrderNumbers.parseId("246077")).isEqualTo(246077L);
     }
 
     @Test
-    void temporaryPlaceholder_fitsOrderNumberColumn() {
-        String placeholder = OrderNumbers.temporaryPlaceholder();
-        assertThat(placeholder).hasSize(OrderNumbers.MAX_ORDER_NUMBER_LENGTH);
-        assertThat(placeholder).startsWith("T");
+    void parseId_returnsNullForNonNumericClientNumber() {
+        assertThat(OrderNumbers.parseId("ALK-2026-0001")).isNull();
     }
 }

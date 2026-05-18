@@ -81,8 +81,6 @@ public class GlobalExceptionHandler {
         String message = "Conflict with existing data";
         if (ex.getMessage() != null && ex.getMessage().contains("client_order_number")) {
             message = "Numer zamówienia jest już użyty";
-        } else if (ex.getMessage() != null && ex.getMessage().contains("order_number")) {
-            message = "Konflikt numeru zamówienia — spróbuj ponownie";
         }
         ErrorResponse body = ErrorResponse.of(
                 HttpStatus.CONFLICT.value(),
