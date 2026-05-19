@@ -69,7 +69,34 @@ Przy `CONNECT`: nagłówek STOMP `Authorization: Bearer <accessToken>`.
 **Payload** (JSON): `type`, `orderId`, `clientOrderNumber`, `status`, opcjonalnie `deliveryId`, `courierUserId`.  
 Typy: `ORDER_SUBMITTED`, `ORDER_STATUS_CHANGED`, `DISPATCH_PENDING`, `DELIVERY_ASSIGNED`, `ORDER_DELIVERED`, `ORDER_CANCELLED`.
 
-**FCM** (`POST /api/devices/fcm`): jeśli na Renderze jest `FIREBASE_SERVICE_ACCOUNT_JSON` — push przy nowym zamówieniu (staff), `IN_DELIVERY` (manager), przypisaniu kuriera (ten kurier). Bez Firebase — tylko STOMP.
+**FCM** (`POST /api/devices/fcm`): jeśli na Renderze jest `FIREBASE_SERVICE_ACCOUNT_JSON` — patrz tabela. Bez Firebase — tylko STOMP; w logach API: `FCM disabled`.
+
+| Zdarzenie | Kto dostaje FCM | Kiedy (backend) |
+|-----------|-----------------|-----------------|
+| Nowe zamówienie sklepu | EMPLOYEE + MANAGER | `POST /api/orders` → `ORDER_SUBMITTED` |
+| Gotowe do wysyłki | **MANAGER** | Status zamówienia → `IN_DELIVERY` (`DISPATCH_PENDING`) |
+| **Przypisanie kuriera** | **Ten kurier** (userId z assign) | `PATCH /api/deliveries/{id}/assign` → `DELIVERY_ASSIGNED` |
+
+**Mobilka (Michał) — Firebase / FCM**
+
+1. **Ten sam projekt Firebase** co backend (`project_id` w service account = `project_id` w `google-services.json` / `GoogleService-Info.plist`).
+2. **Backend (Render):** zmienna `FIREBASE_SERVICE_ACCOUNT_JSON` = cały JSON klucza *Firebase Console → Project settings → Service accounts → Generate new private key*. Nie commituj do repo — przekaż zespołowi bezpiecznym kanałem (1Password / DM).
+3. **Aplikacja mobilna:** plik `google-services.json` (Android) z *Project settings → Your apps → Android* — ten sam projekt. iOS: `GoogleService-Info.plist`.
+4. **Rejestracja tokenu:** po `POST /api/auth/staff/login` (+ 2FA jeśli włączone) jako kurier → `POST /api/devices/fcm` z Bearer, body: `{ "token": "<fcm-token>", "platform": "android" }` → **204**.
+5. **Push „Nowa dostawa” (kurier)** leci dopiero po **`PATCH /api/deliveries/{id}/assign`** z `courierId` = `userId` zalogowanego kuriera — **nie** przy samym `IN_DELIVERY` (wtedy push idzie do managera). STOMP kuriera: `/user/queue/courier-deliveries` w tym samym momencie.
+6. **Demo bez pełnego flow:** zamówienia **701104, 701106, 701108** są już `IN_DELIVERY` i przypisane do `employee@example.com` (seed) — do testu **listy** kuriera, nie nowego pusha. Nowy push: assign na **701105** (bez kuriera) albo hook poniżej.
+
+**Tymczasowy hook testów (bez JWT)** — wyłącz po testach:
+
+| Env Render | Wartość |
+|------------|---------|
+| `APP_DEV_NOTIFICATION_TEST_HOOK_ENABLED` | `true` (potem `false` lub usuń) |
+
+```http
+POST https://api-alcozon.onrender.com/api/dev/notification-test/order-assigned-to-employee
+```
+
+Tworzy zamówienie (`customer@example.com`), prowadzi do `IN_DELIVERY`, przypisuje dostawę do `employee@example.com` i odpala notifiery (w tym FCM kuriera, jeśli ma zarejestrowany token).
 
 **Szkielety kodu klienta:**
 

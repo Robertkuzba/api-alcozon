@@ -1,6 +1,7 @@
 package com.alcoholfactory.api;
 
 import com.alcoholfactory.api.config.CorsProperties;
+import com.alcoholfactory.api.config.DevNotificationTestHookProperties;
 import com.alcoholfactory.api.config.FirebaseProperties;
 import com.alcoholfactory.api.config.JwtProperties;
 import com.alcoholfactory.api.config.MailProperties;
@@ -14,6 +15,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
         JwtProperties.class,
         CorsProperties.class,
         FirebaseProperties.class,
+        DevNotificationTestHookProperties.class,
         MailProperties.class,
         TwoFactorProperties.class
 })
