@@ -29,27 +29,15 @@ public class DataInitializer implements CommandLineRunner {
     private final ProductStockRepository productStockRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private static final String MANAGER_EMAIL = "manager@example.com";
+    private static final String MANAGER_PASSWORD = "Manager123!";
+    private static final String EMPLOYEE_EMAIL = "employee@example.com";
+    private static final String EMPLOYEE_PASSWORD = "Employee123!";
+
     @Override
     public void run(String... args) {
-        if (userRepository.count() == 0) {
-            User manager = User.builder()
-                    .email("manager@example.com")
-                    .passwordHash(passwordEncoder.encode("Manager123!"))
-                    .role(UserRole.MANAGER)
-                    .active(true)
-                    .courier(false)
-                    .build();
-            userRepository.save(manager);
-            User employee = User.builder()
-                    .email("employee@example.com")
-                    .passwordHash(passwordEncoder.encode("Employee123!"))
-                    .role(UserRole.EMPLOYEE)
-                    .active(true)
-                    .courier(true)
-                    .build();
-            userRepository.save(employee);
-            log.info("Seeded users: manager@example.com / Manager123!, employee@example.com / Employee123!");
-        }
+        ensureDemoStaffUser(MANAGER_EMAIL, MANAGER_PASSWORD, UserRole.MANAGER, false);
+        ensureDemoStaffUser(EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD, UserRole.EMPLOYEE, true);
         if (productRepository.count() == 0) {
             Product p = Product.builder()
                     .name("Demo Vodka 500ml")
@@ -67,6 +55,50 @@ public class DataInitializer implements CommandLineRunner {
                     .warehouseZone("A1")
                     .build());
             log.info("Seeded demo product with stock");
+        }
+    }
+
+    /**
+     * Konta demo staff: tworzy przy braku, synchronizuje hasło/rolę jeśli ktoś zmienił hash w DB
+     * (Neon produkcyjny — seed przy count()==0 nie nadpisuje istniejących użytkowników).
+     */
+    private void ensureDemoStaffUser(String email, String plainPassword, UserRole role, boolean courier) {
+        userRepository.findByEmail(email).ifPresentOrElse(
+                existing -> syncDemoStaffUser(existing, plainPassword, role, courier),
+                () -> {
+                    userRepository.save(User.builder()
+                            .email(email)
+                            .passwordHash(passwordEncoder.encode(plainPassword))
+                            .role(role)
+                            .active(true)
+                            .courier(courier)
+                            .build());
+                    log.info("Seeded demo user: {}", email);
+                }
+        );
+    }
+
+    private void syncDemoStaffUser(User user, String plainPassword, UserRole role, boolean courier) {
+        boolean changed = false;
+        if (!passwordEncoder.matches(plainPassword, user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(plainPassword));
+            changed = true;
+        }
+        if (user.getRole() != role) {
+            user.setRole(role);
+            changed = true;
+        }
+        if (!user.isActive()) {
+            user.setActive(true);
+            changed = true;
+        }
+        if (user.isCourier() != courier) {
+            user.setCourier(courier);
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+            log.info("Synchronized demo staff account: {}", user.getEmail());
         }
     }
 }
