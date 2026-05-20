@@ -3,26 +3,45 @@ package com.alcoholfactory.api.modules.security.service;
 import com.alcoholfactory.api.common.error.BusinessException;
 import com.alcoholfactory.api.config.AppSecurityProperties;
 import com.alcoholfactory.api.modules.security.dto.AppCheckRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AppSecurityService {
 
-    /** Domyślny debug SHA (Flutter/Android dev) — fallback gdy allowlista pusta po złym env na Renderze. */
+    private static final String DEFAULT_PACKAGE_NAME = "com.alkozon.app";
+    private static final int DEFAULT_MIN_VERSION_CODE = 1;
+    /** Domyślny debug SHA (Flutter/Android dev). */
     private static final String DEFAULT_DEBUG_SHA256 =
             "e1b17830399a952b8ff905023d5dc98f0a202cbb18941beb06000717341ac7f6";
 
-    private final AppSecurityProperties appSecurityProperties;
+    private final String expectedPackageName;
+    private final int minVersionCode;
+    private final Set<String> allowedSha256;
+
+    public AppSecurityService(AppSecurityProperties appSecurityProperties) {
+        AppSecurityProperties.Android android = appSecurityProperties != null
+                ? appSecurityProperties.android()
+                : null;
+        this.expectedPackageName = resolvePackageName(android);
+        this.minVersionCode = resolveMinVersionCode(android);
+        this.allowedSha256 = resolveAllowedShas(android);
+        log.info(
+                "App-check config: package={}, minVersionCode={}, allowedShaCount={}",
+                expectedPackageName,
+                minVersionCode,
+                allowedSha256.size()
+        );
+    }
 
     public void verify(AppCheckRequest request) {
         if (!isAllowed(request)) {
@@ -38,28 +57,39 @@ public class AppSecurityService {
     }
 
     boolean isAllowed(AppCheckRequest request) {
-        AppSecurityProperties.Android android = appSecurityProperties.android();
-        if (android == null) {
-            log.warn("App-check: app.security.android not configured");
-            return false;
-        }
         if (!"android".equalsIgnoreCase(request.platform())) {
             return false;
         }
-        if (!android.packageName().equals(request.packageName())) {
+        if (!Objects.equals(expectedPackageName, request.packageName())) {
+            return false;
+        }
+        Integer versionCode = request.versionCode();
+        if (versionCode == null || versionCode < minVersionCode) {
             return false;
         }
         String sha = normalizeSha256(request.signingCertSha256());
-        if (!allowedShaSet(android).contains(sha)) {
-            return false;
-        }
-        return request.versionCode() >= android.minVersionCode();
+        return allowedSha256.contains(sha);
     }
 
-    private Set<String> allowedShaSet(AppSecurityProperties.Android android) {
-        Set<String> configured = android.allowedSigningCertSha256() == null
+    private static String resolvePackageName(AppSecurityProperties.Android android) {
+        if (android != null && StringUtils.hasText(android.packageName())) {
+            return android.packageName().trim();
+        }
+        return DEFAULT_PACKAGE_NAME;
+    }
+
+    private static int resolveMinVersionCode(AppSecurityProperties.Android android) {
+        if (android != null && android.minVersionCode() > 0) {
+            return android.minVersionCode();
+        }
+        return DEFAULT_MIN_VERSION_CODE;
+    }
+
+    private static Set<String> resolveAllowedShas(AppSecurityProperties.Android android) {
+        List<String> raw = android != null ? android.allowedSigningCertSha256() : null;
+        Set<String> configured = raw == null
                 ? Set.of()
-                : android.allowedSigningCertSha256().stream()
+                : raw.stream()
                         .map(AppSecurityService::normalizeSha256)
                         .filter(StringUtils::hasText)
                         .collect(Collectors.toSet());

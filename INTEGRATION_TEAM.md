@@ -67,10 +67,11 @@ Na Renderze **nie ustawiaj** pustej zmiennej nadpisującej listę SHA (np. `APP_
 
 ### Zamówienia demo (seed przy starcie API, `DemoOrderSeeder`)
 
-Numer klienta (`clientOrderNumber`) **701101–701111** — ponowny seed pomijany, jeśli istnieje `701101`.
+Numer klienta (`clientOrderNumber`) **701101–701111** — seed podstawowy, jeśli brak `701101`.  
+**701112–701113** — seed Michała (kurier), jeśli brak `701112` (działa też na już zaseedowanej prod DB).
 
-| Nr | Status | Kurier (`employee@`) | Adres (skrót) |
-|----|--------|----------------------|---------------|
+| Nr | Status | Kurier | Adres (skrót) |
+|----|--------|--------|---------------|
 | 701101 | SUBMITTED | — | ul. Oławska 15 |
 | 701102 | IN_PRODUCTION | — | Kazimierza Wielkiego 27 |
 | 701103 | IN_PACKING | — | Hubska 52 |
@@ -82,9 +83,12 @@ Numer klienta (`clientOrderNumber`) **701101–701111** — ponowny seed pomijan
 | 701109 | IN_DELIVERY | **nie** | Grabiszyńska 241 |
 | 701110 | DELIVERED | tak | Klecińska 4 |
 | 701111 | CANCELLED | — | Na Grobli 20 |
+| **701112** | **IN_DELIVERY** | **nie** | Piłsudskiego 74 — **nowe, bez kuriera** (desktop: assign) |
+| **701113** | **IN_DELIVERY** | **`michal.nocun@…`** | Powstańców Śl. 95 — **lista kuriera Michała** |
 
-- Kurier: `GET /api/orders/for-courier/{id}` — tylko **701104, 701106, 701108** (+ 701110 jeśli jeszcze IN_DELIVERY w UI; seed ma DELIVERED).
-- Desktop: `GET /api/deliveries` — wszystkie `IN_DELIVERY`, m.in. **701105, 701107, 701109** bez kuriera (`courierId` null).
+- Kurier `employee@example.com`: `GET /api/orders/for-courier/{id}` — **701104, 701106, 701108**.
+- Kurier **Michał** (`michal.nocun@studenci.collegiumwitelona.pl`): ten sam endpoint z **jego `userId`** — **701113** (po deploy / restarcie API).
+- Desktop: `GET /api/deliveries` — wszystkie `IN_DELIVERY`, m.in. **701105, 701107, 701109, 701112** bez kuriera (`courierId` null).
 
 ---
 

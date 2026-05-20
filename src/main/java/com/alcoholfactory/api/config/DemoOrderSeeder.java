@@ -39,9 +39,11 @@ import java.time.temporal.ChronoUnit;
 public class DemoOrderSeeder implements CommandLineRunner {
 
     private static final String SEED_CHECK_NUMBER = "701101";
+    private static final String MICHAL_SEED_CHECK_NUMBER = "701112";
     private static final String CUSTOMER_EMAIL = "customer@example.com";
     private static final String CUSTOMER_PASSWORD = "Customer123!";
     private static final String EMPLOYEE_EMAIL = "employee@example.com";
+    private static final String MICHAL_EMAIL = "michal.nocun@studenci.collegiumwitelona.pl";
 
     private final CustomerOrderRepository orderRepository;
     private final DeliveryRepository deliveryRepository;
@@ -53,9 +55,15 @@ public class DemoOrderSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (orderRepository.existsByClientOrderNumber(SEED_CHECK_NUMBER)) {
-            return;
+        if (!orderRepository.existsByClientOrderNumber(SEED_CHECK_NUMBER)) {
+            seedPrimaryDemoOrders();
         }
+        if (!orderRepository.existsByClientOrderNumber(MICHAL_SEED_CHECK_NUMBER)) {
+            seedMichalDemoOrders();
+        }
+    }
+
+    private void seedPrimaryDemoOrders() {
         User customer = ensureCustomer();
         User employee = userRepository.findByEmail(EMPLOYEE_EMAIL)
                 .orElseThrow(() -> new IllegalStateException(
@@ -121,6 +129,33 @@ public class DemoOrderSeeder implements CommandLineRunner {
                   DELIVERED=701110, CANCELLED=701111.
                 Customer: {} / {}
                 """, CUSTOMER_EMAIL, CUSTOMER_PASSWORD);
+    }
+
+    /** Zamówienia pod testy kuriera Michała (idempotentne po numerze 701112). */
+    private void seedMichalDemoOrders() {
+        User customer = ensureCustomer();
+        User michal = userRepository.findByEmail(MICHAL_EMAIL)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Brak " + MICHAL_EMAIL + " — uruchom DataInitializer"));
+        Product product = resolveSeedProduct();
+        Instant now = Instant.now();
+
+        createOrder(customer, product, "701112", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Nowe — bez kuriera", "ul. Piłsudskiego 74", "Wrocław", "50-371",
+                        "Demo: IN_DELIVERY, courierId=null — desktop PATCH /api/deliveries/…/assign"),
+                now.minus(30, ChronoUnit.MINUTES), null);
+
+        createOrder(customer, product, "701113", OrderStatus.IN_DELIVERY, michal, DeliveryStatus.ASSIGNED,
+                address("Michał Nocuń (kurier)", "ul. Powstańców Śląskich 95", "Wrocław", "53-332",
+                        "Demo IN_DELIVERY — kurier: " + MICHAL_EMAIL),
+                now.minus(15, ChronoUnit.MINUTES), null);
+
+        log.info("""
+                Seeded Michał demo orders: 701112=IN_DELIVERY (bez kuriera),
+                701113=IN_DELIVERY assigned to {}.
+                Kurier: GET /api/orders/for-courier/{{michalUserId}} → 701113.
+                Desktop: GET /api/deliveries → 701112 (assign → Michał = push FCM).
+                """, MICHAL_EMAIL);
     }
 
     private User ensureCustomer() {
