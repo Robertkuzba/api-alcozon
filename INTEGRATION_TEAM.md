@@ -8,6 +8,34 @@
 
 ---
 
+## Weryfikacja aplikacji Android (app-check)
+
+Przed logowaniem mobilka wywołuje (bez JWT):
+
+```http
+POST /api/security/app-check
+Content-Type: application/json
+
+{
+  "platform": "android",
+  "packageName": "com.alkozon.app",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "signingCertSha256": "<sha256_cert_lowercase_bez_dwukropkow>"
+}
+```
+
+| Wynik | HTTP |
+|--------|------|
+| OK | **204** |
+| Zły pakiet / SHA / wersja | **403** |
+| Brak pola w body | **400** |
+
+Konfiguracja (`application.yml` → `app.security.android`): `package-name`, `min-version-code`, `allowed-signing-cert-sha256` (lista).  
+Debug SHA (dev): `e1b17830399a952b8ff905023d5dc98f0a202cbb18941beb06000717341ac7f6` — po release dopisać SHA keystore na Renderze.
+
+---
+
 ## JWT (logowanie / mobilka)
 
 | Token | TTL (domyślnie) | Uwagi |

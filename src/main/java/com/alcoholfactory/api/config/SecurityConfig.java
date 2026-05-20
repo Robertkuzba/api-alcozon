@@ -54,6 +54,7 @@ public class SecurityConfig {
                             "/api/auth/guest"
                     ).permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/security/app-check").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/api/orders/track").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/api/custom-orders/track").permitAll();

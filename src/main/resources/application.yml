@@ -70,6 +70,14 @@ app:
     notification-test-hook:
       # Tymczasowo true na Renderze tylko do testów FCM (mobilka); potem wyłącz.
       enabled: ${APP_DEV_NOTIFICATION_TEST_HOOK_ENABLED:false}
+  security:
+    android:
+      package-name: ${APP_SECURITY_ANDROID_PACKAGE_NAME:com.alkozon.app}
+      min-version-code: ${APP_SECURITY_ANDROID_MIN_VERSION_CODE:1}
+      allowed-signing-cert-sha256:
+        - e1b17830399a952b8ff905023d5dc98f0a202cbb18941beb06000717341ac7f6
+        # Dodaj release SHA (lowercase, bez dwukropków) w Render env lub tutaj:
+        # - <release_keystore_sha256>
   cors:
     # Dodatkowe originy produkcyjne (np. desktop): zmienna APP_CORS_ALLOWED_ORIGINS=url1,url2
     # Dev whitelist:
