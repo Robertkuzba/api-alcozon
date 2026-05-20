@@ -35,7 +35,7 @@ public class DataInitializer implements CommandLineRunner {
     private static final String EMPLOYEE_PASSWORD = "Employee123!";
     /** Konto mobilki (Michał) — synchronizowane przy starcie API. */
     private static final String MICHAL_EMAIL = "michal.nocun@studenci.collegiumwitelona.pl";
-    private static final String MICHAL_PASSWORD = "Asd123!";
+    private static final String MICHAL_PASSWORD = "Asdasd123!";
 
     @Override
     public void run(String... args) {

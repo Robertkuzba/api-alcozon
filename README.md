@@ -22,7 +22,7 @@ Po pierwszym starcie (pusta baza):
 |---------------------|---------------|---------|
 | manager@example.com | `Manager123!` | MANAGER |
 | employee@example.com| `Employee123!`| EMPLOYEE (kurier) |
-| michal.nocun@studenci.collegiumwitelona.pl | `Asd123!` | EMPLOYEE (kurier) |
+| michal.nocun@studenci.collegiumwitelona.pl | `Asdasd123!` | EMPLOYEE (kurier) |
 
 Konta staff są **synchronizowane przy każdym starcie** (hasło/rola/kurier) — także na Renderze po deployu.
 

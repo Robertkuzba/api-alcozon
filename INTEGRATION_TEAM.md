@@ -62,7 +62,7 @@ Na Renderze **nie ustawiaj** pustej zmiennej nadpisującej listę SHA (np. `APP_
 |------|--------|--------|
 | Manager (desktop) | `manager@example.com` | `Manager123!` |
 | Pracownik / kurier (mobilka, demo) | `employee@example.com` | `Employee123!` |
-| Pracownik / kurier (Michał) | `michal.nocun@studenci.collegiumwitelona.pl` | `Asd123!` |
+| Pracownik / kurier (Michał) | `michal.nocun@studenci.collegiumwitelona.pl` | `Asdasd123!` |
 | Klient (demo zamówienia) | `customer@example.com` | `Customer123!` |
 
 ### Zamówienia demo (seed przy starcie API, `DemoOrderSeeder`)
