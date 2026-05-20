@@ -1,6 +1,6 @@
 package com.alcoholfactory.api.order;
 
-import com.alcoholfactory.api.common.domain.CustomOrderStatus;
+import com.alcoholfactory.api.common.domain.OrderStatus;
 import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.modules.order.domain.CustomOrder;
 import com.alcoholfactory.api.modules.order.repository.CustomOrderRepository;
@@ -50,7 +50,7 @@ class CustomOrderTrackMvcTest extends AbstractIntegrationTest {
                         .customer(customer)
                         .description("Własna nalewka testowa")
                         .clientOrderNumber(CLIENT_NUMBER)
-                        .status(CustomOrderStatus.PENDING)
+                        .status(OrderStatus.SUBMITTED)
                         .build()
         );
         customOrderId = order.getId();
@@ -64,7 +64,7 @@ class CustomOrderTrackMvcTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customOrderId").value(customOrderId))
                 .andExpect(jsonPath("$.clientOrderNumber").value(CLIENT_NUMBER))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("SUBMITTED"));
     }
 
     @Test

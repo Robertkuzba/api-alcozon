@@ -1,22 +1,29 @@
 package com.alcoholfactory.api.modules.order.service;
 
-import com.alcoholfactory.api.common.domain.CustomOrderStatus;
+import com.alcoholfactory.api.common.domain.DeliveryStatus;
+import com.alcoholfactory.api.common.domain.OrderStatus;
 import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.common.error.BusinessException;
+import com.alcoholfactory.api.modules.delivery.domain.Delivery;
+import com.alcoholfactory.api.modules.delivery.repository.DeliveryRepository;
 import com.alcoholfactory.api.modules.order.domain.CustomOrder;
 import com.alcoholfactory.api.modules.order.dto.CreateCustomOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.CustomOrderResponse;
 import com.alcoholfactory.api.modules.order.dto.CustomOrderTrackResponse;
 import com.alcoholfactory.api.modules.order.repository.CustomOrderRepository;
+import com.alcoholfactory.api.modules.order.util.CustomOrderDeliveryDetailsResolver;
 import com.alcoholfactory.api.modules.order.util.OrderNumbers;
+import com.alcoholfactory.api.modules.order.util.OrderStatusTransitions;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
+import com.alcoholfactory.api.notification.CustomOrderRealtimeNotifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +35,8 @@ public class CustomOrderService {
 
     private final CustomOrderRepository customOrderRepository;
     private final UserRepository userRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final CustomOrderRealtimeNotifier customOrderRealtimeNotifier;
 
     @Transactional
     public CustomOrderResponse create(Long userId, CreateCustomOrderRequest req) {
@@ -47,15 +56,13 @@ public class CustomOrderService {
                 .description(req.description())
                 .clientOrderNumber(clientOrderNumber)
                 .preferences(req.preferences())
-                .status(CustomOrderStatus.PENDING)
+                .status(OrderStatus.SUBMITTED)
                 .build();
         customOrderRepository.save(co);
+        customOrderRealtimeNotifier.onCustomOrderCreated(co);
         return toResponse(co);
     }
 
-    /**
-     * Publiczne śledzenie zamówienia własnego: {@code id}, {@code CUSTOM-{id}} lub {@code clientOrderNumber}.
-     */
     @Transactional(readOnly = true)
     public CustomOrderTrackResponse trackPublic(String orderRef, String email) {
         String normalized = email == null ? "" : email.trim().toLowerCase();
@@ -99,11 +106,30 @@ public class CustomOrderService {
     }
 
     @Transactional
-    public CustomOrderResponse patchStatus(Long id, CustomOrderStatus status) {
+    public CustomOrderResponse patchStatus(Long id, OrderStatus newStatus) {
         CustomOrder co = customOrderRepository.findFetchedById(id)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Not found"));
-        co.setStatus(status);
-        return toResponse(customOrderRepository.save(co));
+        OrderStatus old = co.getStatus();
+        if (!OrderStatusTransitions.isAllowed(old, newStatus)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Niedozwolona zmiana statusu: " + old + " -> " + newStatus);
+        }
+        co.setStatus(newStatus);
+        if (newStatus == OrderStatus.DELIVERED) {
+            co.setDeliveredAt(Instant.now());
+        }
+        if (newStatus == OrderStatus.IN_DELIVERY) {
+            ensureDelivery(co);
+        }
+        if (newStatus == OrderStatus.DELIVERED) {
+            deliveryRepository.findByCustomOrderId(co.getId()).ifPresent(d -> {
+                d.setStatus(DeliveryStatus.DELIVERED);
+                d.setDeliveredAt(Instant.now());
+                deliveryRepository.save(d);
+            });
+        }
+        customOrderRepository.save(co);
+        customOrderRealtimeNotifier.onCustomOrderStatusChanged(co, newStatus);
+        return toResponse(co);
     }
 
     @Transactional
@@ -114,6 +140,19 @@ public class CustomOrderService {
                 .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "Invalid assignee"));
         co.setAssignedTo(assignee);
         return toResponse(customOrderRepository.save(co));
+    }
+
+    private void ensureDelivery(CustomOrder order) {
+        if (deliveryRepository.findByCustomOrderId(order.getId()).isPresent()) {
+            return;
+        }
+        Delivery delivery = Delivery.builder()
+                .customOrder(order)
+                .clientOrderNumber(displayClientOrderNumber(order))
+                .status(DeliveryStatus.PENDING)
+                .deliveryDetails(CustomOrderDeliveryDetailsResolver.fromPreferences(order))
+                .build();
+        deliveryRepository.save(delivery);
     }
 
     private CustomOrder resolveCustomOrder(String orderRef) {
@@ -154,7 +193,7 @@ public class CustomOrderService {
         return "CUSTOM-" + co.getId();
     }
 
-    private CustomOrderResponse toResponse(CustomOrder co) {
+    public CustomOrderResponse toResponse(CustomOrder co) {
         return new CustomOrderResponse(
                 co.getId(),
                 displayClientOrderNumber(co),
@@ -162,6 +201,7 @@ public class CustomOrderService {
                 co.getDescription(),
                 co.getPreferences(),
                 co.getStatus(),
+                co.getDeliveredAt(),
                 co.getAssignedTo() != null ? co.getAssignedTo().getId() : null,
                 co.getCreatedAt(),
                 co.getUpdatedAt()

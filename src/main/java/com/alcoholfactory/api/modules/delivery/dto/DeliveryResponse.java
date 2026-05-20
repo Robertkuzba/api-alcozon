@@ -8,6 +8,8 @@ import java.time.Instant;
 public record DeliveryResponse(
         Long id,
         Long orderId,
+        Long customOrderId,
+        boolean customOrder,
         String clientOrderNumber,
         Long courierId,
         String courierEmail,

@@ -8,12 +8,22 @@
 
 ---
 
+## JWT (logowanie / mobilka)
+
+| Token | TTL (domyślnie) | Uwagi |
+|-------|-----------------|--------|
+| **Access** (Bearer, `expiresInSeconds` w `TokenResponse`) | **86400 s (24 h)** | Render: można nadpisać `JWT_ACCESS_TTL` (sekundy). Krótki access nie blokuje FCM (push idzie po stronie serwera); warto mieć **`POST /api/auth/refresh`** przy 401. |
+| **Refresh** | **30 dni** | `jwt.refresh-ttl` / przyszłościowo osobny env jeśli potrzebny. |
+
+---
+
 ## Konta demo
 
 | Rola | E-mail | Hasło |
 |------|--------|--------|
 | Manager (desktop) | `manager@example.com` | `Manager123!` |
-| Pracownik / kurier (mobilka) | `employee@example.com` | `Employee123!` |
+| Pracownik / kurier (mobilka, demo) | `employee@example.com` | `Employee123!` |
+| Pracownik / kurier (Michał) | `michal.nocun@studenci.collegiumwitelona.pl` | `Asd123!` |
 | Klient (demo zamówienia) | `customer@example.com` | `Customer123!` |
 
 ### Zamówienia demo (seed przy starcie API, `DemoOrderSeeder`)
@@ -39,18 +49,20 @@ Numer klienta (`clientOrderNumber`) **701101–701111** — ponowny seed pomijan
 
 ---
 
-## Słownik statusów zamówienia (`OrderStatus`)
+## Słownik statusów zamówienia (`OrderStatus`) — sklep **i** custom
 
 | Status API | PL (UI) |
 |------------|---------|
-| `SUBMITTED` | Złożone (klient, web) |
+| `SUBMITTED` | Zgłoszone / złożone |
 | `IN_PRODUCTION` | W produkcji |
 | `IN_PACKING` | W pakowaniu |
-| `IN_DELIVERY` | W drodze — **tutaj desktop przypisuje kuriera** |
+| `IN_DELIVERY` | W drodze (dostawa) — tworzy `Delivery`, desktop przypisuje kuriera |
 | `DELIVERED` | Dostarczone |
 | `CANCELLED` | Anulowane |
 
-**Uwaga:** Rekord `Delivery` powstaje przy przejściu zamówienia na **`IN_DELIVERY`** (nie przy `IN_PACKING`).
+**Custom:** ten sam enum w `PATCH /api/custom-orders/{id}/status`. Odpowiedź `GET /api/deliveries`: `customOrder: true`, `customOrderId`, `orderId` null.
+
+**Uwaga:** Rekord `Delivery` (sklep lub custom) powstaje przy **`IN_DELIVERY`** (nie przy `IN_PACKING`).
 
 ---
 
@@ -115,7 +127,7 @@ Tworzy zamówienie (`customer@example.com`), prowadzi do `IN_DELIVERY`, przypisu
 3. **Backend:** przy `IN_DELIVERY` tworzy rekord `Delivery` (adres w `deliveryDetails`).
 4. **Desktop (MANAGER):** `PATCH /api/deliveries/{id}/assign` — body: `{ "courierId": <userId> }`.
 5. **Mobilka (kurier):** lista zleceń:
-   - `GET /api/orders/for-courier/{courierUserId}` — zamówienia `IN_DELIVERY` przypisane do kuriera (EMPLOYEE: tylko własne `userId` z JWT / `GET /api/users/me`);
+   - `GET /api/orders/for-courier/{courierUserId}` — odpowiedź `{ shopOrders, customOrders }` (`IN_DELIVERY` + przypisany kurier);
    - alternatywnie: `GET /api/deliveries/my` (JWT kuriera).
 6. **Kurier:** `PATCH /api/deliveries/{id}/status` → `{ "status": "DELIVERED" }` — synchronizuje zamówienie na `DELIVERED`.
 
@@ -157,7 +169,8 @@ Backend **nie** łączy śledzenia sklepu z custom w jednym endpoincie — front
 2. **Śledzenie publiczne** (`order-status`)  
    - `GET /api/orders/track?orderId=&email=` — tylko zamówienia sklepowe (`orders`).  
    - Przy **404** wywołać `GET /api/custom-orders/track?orderId=&email=` (ten sam `orderId` / numer klienta / `CUSTOM-{id}`).  
-   - Mapowanie statusów custom: `PENDING`→złożone, `IN_PROGRESS`→w realizacji, `COMPLETED`→dostarczone, `REJECTED`→anulowane.
+   - Statusy custom = **te same co sklep** (`OrderStatus`): `SUBMITTED`, `IN_PRODUCTION`, `IN_PACKING`, `IN_DELIVERY`, `DELIVERED`, `CANCELLED` (migracja V19 z `PENDING`/`IN_PROGRESS`/…).
+   - Przy `IN_DELIVERY` backend tworzy `Delivery` (jak sklep); desktop: `GET /api/deliveries` + `PATCH …/assign`; mobilka: `PATCH /api/custom-orders/{id}/status`.
 
 3. **Moje zamówienia**  
    - Pobrać `GET /api/orders/my` **oraz** `GET /api/custom-orders/my`, scalić listę (np. po `createdAt`).  
@@ -167,7 +180,7 @@ Backend **nie** łączy śledzenia sklepu z custom w jednym endpoincie — front
    - `CustomOrderResponse` zawiera teraz `clientOrderNumber` (nie tylko `id`).  
    - `deliveryAddress` w zwykłym zamówieniu już **nie** ma w API — tylko `deliveryDetails` (sklep).
 
-Migracja: **V18** (`custom_orders.client_order_number`).
+Migracje: **V18** (`client_order_number`), **V19** (statusy jak sklep + `deliveries.custom_order_id`).
 
 ---
 
@@ -189,7 +202,8 @@ Migracja: **V18** (`custom_orders.client_order_number`).
 ### Zamówienia
 - `POST /api/orders` — klient
 - `PATCH /api/orders/{id}/status` — staff
-- **`GET /api/orders/for-courier/{courierUserId}`** — lista `IN_DELIVERY` przypisanych do kuriera
+- **`GET /api/orders/staff/combined`** — magazyn: `{ shopOrders: Page, customOrders: [] }` (sklep + custom, jedno żądanie)
+- **`GET /api/orders/for-courier/{courierUserId}`** — kurier: `{ shopOrders: [], customOrders: [] }` — `IN_DELIVERY` z przypisaną dostawą (oba typy)
 - `GET /api/orders/track?orderId=&email=` — publiczne śledzenie
 
 ### Dostawy

@@ -12,14 +12,41 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     Optional<Delivery> findByOrderId(Long orderId);
 
+    Optional<Delivery> findByCustomOrderId(Long customOrderId);
+
     List<Delivery> findByCourierIdOrderByIdDesc(Long courierId);
 
-    @Query("SELECT d FROM Delivery d JOIN FETCH d.order o JOIN FETCH o.customer LEFT JOIN FETCH d.courier ORDER BY d.id DESC")
+    @Query("""
+            SELECT d FROM Delivery d
+            LEFT JOIN FETCH d.order o
+            LEFT JOIN FETCH o.customer
+            LEFT JOIN FETCH d.customOrder co
+            LEFT JOIN FETCH co.customer
+            LEFT JOIN FETCH d.courier
+            ORDER BY d.id DESC
+            """)
     List<Delivery> findAllFetched();
 
-    @Query("SELECT d FROM Delivery d JOIN FETCH d.order o JOIN FETCH o.customer LEFT JOIN FETCH d.courier WHERE d.courier.id = :courierId ORDER BY d.id DESC")
+    @Query("""
+            SELECT d FROM Delivery d
+            LEFT JOIN FETCH d.order o
+            LEFT JOIN FETCH o.customer
+            LEFT JOIN FETCH d.customOrder co
+            LEFT JOIN FETCH co.customer
+            LEFT JOIN FETCH d.courier
+            WHERE d.courier.id = :courierId
+            ORDER BY d.id DESC
+            """)
     List<Delivery> findByCourierIdFetched(@Param("courierId") Long courierId);
 
-    @Query("SELECT d FROM Delivery d JOIN FETCH d.order o JOIN FETCH o.customer LEFT JOIN FETCH d.courier WHERE d.id = :id")
+    @Query("""
+            SELECT d FROM Delivery d
+            LEFT JOIN FETCH d.order o
+            LEFT JOIN FETCH o.customer
+            LEFT JOIN FETCH d.customOrder co
+            LEFT JOIN FETCH co.customer
+            LEFT JOIN FETCH d.courier
+            WHERE d.id = :id
+            """)
     Optional<Delivery> findFetchedById(@Param("id") Long id);
 }

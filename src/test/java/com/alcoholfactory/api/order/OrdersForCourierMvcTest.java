@@ -76,12 +76,13 @@ class OrdersForCourierMvcTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/orders/for-courier/" + courierId)
                         .header("Authorization", "Bearer " + employee.accessToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(orderId))
-                .andExpect(jsonPath("$[0].status").value("IN_DELIVERY"));
+                .andExpect(jsonPath("$.shopOrders[0].id").value(orderId))
+                .andExpect(jsonPath("$.shopOrders[0].status").value("IN_DELIVERY"))
+                .andExpect(jsonPath("$.customOrders").isArray());
 
         mockMvc.perform(get("/api/orders/for-courier/" + courierId)
                         .header("Authorization", "Bearer " + manager.accessToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(orderId));
+                .andExpect(jsonPath("$.shopOrders[0].id").value(orderId));
     }
 }

@@ -1,6 +1,6 @@
 package com.alcoholfactory.api.modules.order.domain;
 
-import com.alcoholfactory.api.common.domain.CustomOrderStatus;
+import com.alcoholfactory.api.common.domain.OrderStatus;
 import com.alcoholfactory.api.modules.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -55,7 +55,10 @@ public class CustomOrder {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private CustomOrderStatus status;
+    private OrderStatus status;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")

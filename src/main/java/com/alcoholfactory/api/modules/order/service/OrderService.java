@@ -19,6 +19,7 @@ import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderLineRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
 import com.alcoholfactory.api.modules.order.util.OrderNumbers;
+import com.alcoholfactory.api.modules.order.util.OrderStatusTransitions;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.product.domain.Product;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
@@ -278,19 +279,10 @@ public class OrderService {
     }
 
     private boolean isAllowedTransition(OrderStatus from, OrderStatus to) {
-        if (to == OrderStatus.CANCELLED) {
-            return false;
-        }
-        return switch (from) {
-            case SUBMITTED -> to == OrderStatus.IN_PRODUCTION || to == OrderStatus.IN_PACKING;
-            case IN_PRODUCTION -> to == OrderStatus.IN_PACKING || to == OrderStatus.IN_DELIVERY;
-            case IN_PACKING -> to == OrderStatus.IN_DELIVERY;
-            case IN_DELIVERY -> to == OrderStatus.DELIVERED;
-            default -> false;
-        };
+        return OrderStatusTransitions.isAllowed(from, to);
     }
 
-    private OrderResponse toResponse(CustomerOrder o) {
+    public OrderResponse toResponse(CustomerOrder o) {
         List<OrderItemResponse> items = o.getItems() == null ? List.of() : o.getItems().stream()
                 .map(i -> new OrderItemResponse(
                         i.getProduct().getId(),

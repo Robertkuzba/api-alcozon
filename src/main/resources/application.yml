@@ -46,7 +46,8 @@ logging:
 # JWT (dev – w produkcji użyj zmiennych środowiskowych)
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-min-256-bits-for-hs256-please-change-in-production}
-  access-ttl: 900
+  # Access JWT (Bearer). Domyślnie 24 h — mobilka/STOMP mniej się „odsyja” po 15 min; nadpisz JWT_ACCESS_TTL w sekundach.
+  access-ttl: ${JWT_ACCESS_TTL:86400}
   # Refresh token: 30 dni (wymóg mobilki / „zaufane urządzenie” na demo)
   refresh-ttl: 2592000
 

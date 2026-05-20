@@ -1,9 +1,12 @@
 package com.alcoholfactory.api.modules.order.api;
 
+import com.alcoholfactory.api.modules.order.dto.CombinedOrdersResponse;
 import com.alcoholfactory.api.modules.order.dto.CreateOrderRequest;
 import com.alcoholfactory.api.modules.order.dto.OrderResponse;
 import com.alcoholfactory.api.modules.order.dto.OrderTrackResponse;
 import com.alcoholfactory.api.modules.order.dto.PatchOrderStatusRequest;
+import com.alcoholfactory.api.modules.order.dto.StaffCombinedOrdersResponse;
+import com.alcoholfactory.api.modules.order.service.CombinedOrderQueryService;
 import com.alcoholfactory.api.modules.order.service.OrderService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +47,7 @@ public class OrderController {
     private static final Set<String> STAFF_ROLES = Set.of("ROLE_EMPLOYEE", "ROLE_MANAGER");
 
     private final OrderService orderService;
+    private final CombinedOrderQueryService combinedOrderQueryService;
 
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -74,19 +78,26 @@ public class OrderController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    @Operation(summary = "Lista zamówień (pracownik / manager)")
+    @Operation(summary = "Lista zamówień sklepu (pracownik / manager, stronicowanie)")
     public Page<OrderResponse> list(Pageable pageable) {
         return orderService.listAll(pageable);
     }
 
+    @GetMapping("/staff/combined")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+    @Operation(summary = "Lista magazynu: zamówienia sklepu (page) + custom w jednym żądaniu")
+    public StaffCombinedOrdersResponse staffCombined(Pageable pageable) {
+        return combinedOrderQueryService.listForStaff(pageable);
+    }
+
     @GetMapping("/for-courier/{courierUserId}")
     @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    @Operation(summary = "Zamówienia IN_DELIVERY przypisane do kuriera (MANAGER: dowolne id; EMPLOYEE: tylko własne)")
-    public List<OrderResponse> forCourier(
+    @Operation(summary = "IN_DELIVERY przypisane do kuriera: sklep + custom w jednym żądaniu")
+    public CombinedOrdersResponse forCourier(
             @PathVariable @Positive Long courierUserId,
             @AuthenticationPrincipal AppUserDetails user
     ) {
-        return orderService.forCourier(courierUserId, user.getId(), isStaff(user));
+        return combinedOrderQueryService.forCourier(courierUserId, user.getId(), isStaff(user));
     }
 
     @GetMapping("/{id}")

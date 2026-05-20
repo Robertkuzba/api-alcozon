@@ -6,11 +6,16 @@ import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.common.error.BusinessException;
 import com.alcoholfactory.api.modules.delivery.domain.Delivery;
 import com.alcoholfactory.api.modules.delivery.dto.DeliveryResponse;
-import com.alcoholfactory.api.modules.order.dto.OrderDeliveryDetailsResponse;
 import com.alcoholfactory.api.modules.delivery.repository.DeliveryRepository;
+import com.alcoholfactory.api.modules.order.domain.CustomOrder;
+import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
+import com.alcoholfactory.api.modules.order.dto.OrderDeliveryDetailsResponse;
+import com.alcoholfactory.api.modules.order.repository.CustomOrderRepository;
 import com.alcoholfactory.api.modules.order.repository.CustomerOrderRepository;
 import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
+import com.alcoholfactory.api.notification.CustomOrderRealtimeNotifier;
+import com.alcoholfactory.api.notification.OrderRealtimeNotifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,7 +31,9 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final UserRepository userRepository;
     private final CustomerOrderRepository orderRepository;
-    private final com.alcoholfactory.api.notification.OrderRealtimeNotifier orderRealtimeNotifier;
+    private final CustomOrderRepository customOrderRepository;
+    private final OrderRealtimeNotifier orderRealtimeNotifier;
+    private final CustomOrderRealtimeNotifier customOrderRealtimeNotifier;
 
     @Transactional(readOnly = true)
     public List<DeliveryResponse> all() {
@@ -47,7 +54,11 @@ public class DeliveryService {
         d.setCourier(courier);
         d.setStatus(DeliveryStatus.ASSIGNED);
         deliveryRepository.save(d);
-        orderRealtimeNotifier.onDeliveryAssigned(d);
+        if (d.getCustomOrder() != null) {
+            customOrderRealtimeNotifier.onCustomDeliveryAssigned(d);
+        } else {
+            orderRealtimeNotifier.onDeliveryAssigned(d);
+        }
         return toResponse(d);
     }
 
@@ -67,29 +78,54 @@ public class DeliveryService {
         }
         if (status == DeliveryStatus.DELIVERED) {
             d.setDeliveredAt(Instant.now());
-            var order = d.getOrder();
-            order.setStatus(OrderStatus.DELIVERED);
-            order.setDeliveredAt(Instant.now());
-            orderRepository.save(order);
-            orderRealtimeNotifier.onOrderDelivered(order, d);
+            if (d.getCustomOrder() != null) {
+                CustomOrder custom = d.getCustomOrder();
+                custom.setStatus(OrderStatus.DELIVERED);
+                custom.setDeliveredAt(Instant.now());
+                customOrderRepository.save(custom);
+                customOrderRealtimeNotifier.onCustomOrderDelivered(custom, d);
+            } else {
+                CustomerOrder order = d.getOrder();
+                order.setStatus(OrderStatus.DELIVERED);
+                order.setDeliveredAt(Instant.now());
+                orderRepository.save(order);
+                orderRealtimeNotifier.onOrderDelivered(order, d);
+            }
         }
         deliveryRepository.save(d);
         return toResponse(d);
     }
 
     private DeliveryResponse toResponse(Delivery d) {
-        String clientOrderNumber = d.getClientOrderNumber() != null
-                ? d.getClientOrderNumber()
-                : d.getOrder().getClientOrderNumber();
+        boolean custom = d.getCustomOrder() != null;
+        String clientOrderNumber = d.getClientOrderNumber();
+        if (clientOrderNumber == null || clientOrderNumber.isBlank()) {
+            if (custom) {
+                CustomOrder co = d.getCustomOrder();
+                clientOrderNumber = co.getClientOrderNumber() != null
+                        ? co.getClientOrderNumber()
+                        : "CUSTOM-" + co.getId();
+            } else {
+                clientOrderNumber = d.getOrder().getClientOrderNumber();
+            }
+        }
+        String customerEmail = custom
+                ? d.getCustomOrder().getCustomer().getEmail()
+                : d.getOrder().getCustomer().getEmail();
+        Long orderId = custom ? null : d.getOrder().getId();
+        Long customOrderId = custom ? d.getCustomOrder().getId() : null;
+
         return new DeliveryResponse(
                 d.getId(),
-                d.getOrder().getId(),
+                orderId,
+                customOrderId,
+                custom,
                 clientOrderNumber,
                 d.getCourier() != null ? d.getCourier().getId() : null,
                 d.getCourier() != null ? d.getCourier().getEmail() : null,
                 d.getStatus(),
                 OrderDeliveryDetailsResponse.from(d.getDeliveryDetails()),
-                d.getOrder().getCustomer().getEmail(),
+                customerEmail,
                 d.getStartedAt(),
                 d.getDeliveredAt()
         );

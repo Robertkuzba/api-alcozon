@@ -123,6 +123,7 @@ Render ustawia też **`PORT`** (np. `10000`) — aplikacja musi nasłuchiwać na
 | `APP_CORS_ALLOWED_ORIGINS` | Dodatkowe originy frontu, CSV: `https://app.example.com,http://localhost:3000` |
 | `APP_OPENAPI_SERVER_URL` | URL API w Swagger (domyślnie `https://api-alcozon.onrender.com`) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **Cały** JSON service account (Firebase Admin). Puste = FCM wyłączone (log: `FCM disabled`). Nie ustawiaj `{}`. |
+| `JWT_ACCESS_TTL` | Opcjonalnie: TTL access JWT w **sekundach** (domyślnie **86400** = 24 h). Krótki access nie usuwa tokenu FCM z urządzenia — przy problemach z STOMP/401 warto mieć odświeżanie refresh tokenem. |
 
 ### 2FA staff (e-mail) na Renderze
 

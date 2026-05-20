@@ -1,6 +1,7 @@
 package com.alcoholfactory.api.modules.delivery.domain;
 
 import com.alcoholfactory.api.common.domain.DeliveryStatus;
+import com.alcoholfactory.api.modules.order.domain.CustomOrder;
 import com.alcoholfactory.api.modules.order.domain.CustomerOrder;
 import com.alcoholfactory.api.modules.order.domain.OrderDeliveryDetails;
 import com.alcoholfactory.api.modules.user.domain.User;
@@ -38,9 +39,13 @@ public class Delivery {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", unique = true)
     private CustomerOrder order;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "custom_order_id", unique = true)
+    private CustomOrder customOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "courier_id")

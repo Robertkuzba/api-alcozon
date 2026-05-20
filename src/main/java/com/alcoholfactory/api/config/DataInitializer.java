@@ -33,11 +33,15 @@ public class DataInitializer implements CommandLineRunner {
     private static final String MANAGER_PASSWORD = "Manager123!";
     private static final String EMPLOYEE_EMAIL = "employee@example.com";
     private static final String EMPLOYEE_PASSWORD = "Employee123!";
+    /** Konto mobilki (Michał) — synchronizowane przy starcie API. */
+    private static final String MICHAL_EMAIL = "michal.nocun@studenci.collegiumwitelona.pl";
+    private static final String MICHAL_PASSWORD = "Asd123!";
 
     @Override
     public void run(String... args) {
         ensureDemoStaffUser(MANAGER_EMAIL, MANAGER_PASSWORD, UserRole.MANAGER, false);
         ensureDemoStaffUser(EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD, UserRole.EMPLOYEE, true);
+        ensureDemoStaffUser(MICHAL_EMAIL, MICHAL_PASSWORD, UserRole.EMPLOYEE, true);
         if (productRepository.count() == 0) {
             Product p = Product.builder()
                     .name("Demo Vodka 500ml")
