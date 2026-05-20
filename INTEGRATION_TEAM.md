@@ -34,6 +34,17 @@ Content-Type: application/json
 Konfiguracja (`application.yml` → `app.security.android`): `package-name`, `min-version-code`, `allowed-signing-cert-sha256` (lista).  
 Debug SHA (dev): `e1b17830399a952b8ff905023d5dc98f0a202cbb18941beb06000717341ac7f6` — po release dopisać SHA keystore na Renderze.
 
+**Diagnostyka 403:**
+
+| Odpowiedź | Znaczenie |
+|-----------|-----------|
+| **204** | OK |
+| **400** + JSON `Validation failed` | Endpoint działa, złe body |
+| **403** + JSON `App not allowed` | Endpoint działa, zły SHA/pakiet/wersja |
+| **403** + **puste body** | Stary deploy lub brak `permitAll` — żądanie nie dociera do app-check |
+
+Na Renderze **nie ustawiaj** pustej zmiennej nadpisującej listę SHA (np. `APP_SECURITY_ANDROID_ALLOWED_SIGNING_CERT_SHA256=`). Wystarczy domyślny YAML z repo.
+
 ---
 
 ## JWT (logowanie / mobilka)
