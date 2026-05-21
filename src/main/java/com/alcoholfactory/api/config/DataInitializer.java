@@ -36,12 +36,16 @@ public class DataInitializer implements CommandLineRunner {
     /** Konto mobilki (Michał) — synchronizowane przy starcie API. */
     private static final String MICHAL_EMAIL = "michal.nocun@studenci.collegiumwitelona.pl";
     private static final String MICHAL_PASSWORD = "Asdasd123!";
+    /** Robert — staff do testów 2FA / Mailjet (było CUSTOMER po rejestracji WWW). */
+    private static final String ROBERT_EMAIL = "robert.kuzba@studenci.collegiumwitelona.pl";
+    private static final String ROBERT_PASSWORD = "Punia22@";
 
     @Override
     public void run(String... args) {
         ensureDemoStaffUser(MANAGER_EMAIL, MANAGER_PASSWORD, UserRole.MANAGER, false);
         ensureDemoStaffUser(EMPLOYEE_EMAIL, EMPLOYEE_PASSWORD, UserRole.EMPLOYEE, true);
         ensureDemoStaffUser(MICHAL_EMAIL, MICHAL_PASSWORD, UserRole.EMPLOYEE, true);
+        ensureDemoStaffUser(ROBERT_EMAIL, ROBERT_PASSWORD, UserRole.EMPLOYEE, false);
         if (productRepository.count() == 0) {
             Product p = Product.builder()
                     .name("Demo Vodka 500ml")
