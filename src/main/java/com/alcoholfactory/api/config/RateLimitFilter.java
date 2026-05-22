@@ -47,7 +47,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String ip = clientIp(request);
 
-        if ("POST".equalsIgnoreCase(request.getMethod()) && path.contains("/auth/login")) {
+        if ("POST".equalsIgnoreCase(request.getMethod())
+                && (path.contains("/auth/login") || path.contains("/auth/password-reset/request"))) {
             Bucket bucket = loginBuckets.computeIfAbsent(ip, k -> loginBucket());
             if (!bucket.tryConsume(1)) {
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());

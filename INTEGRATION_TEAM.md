@@ -281,6 +281,22 @@ Migracje: **V18** (`client_order_number`), **V19** (statusy jak sklep + `deliver
 **Lokalnie:** Mailpit — `docker compose up` → SMTP `localhost:1025`, UI http://localhost:8025  
 **Prod:** zmienne `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` (np. SendGrid); awaryjnie `MAIL_LOG_ONLY=true` (kod w logach — tylko dev/debug).
 
+### Reset hasła pracownika (mobilka / EMPLOYEE)
+
+`POST /api/auth/password-reset/request` — **bez JWT** (publiczny), **zawsze 204** (nie ujawnia, czy e-mail jest w systemie).
+
+```json
+{ "email": "michal.nocun@studenci.collegiumwitelona.pl" }
+```
+
+| Warunek | Działanie |
+|--------|-----------|
+| Użytkownik istnieje, rola **`EMPLOYEE`**, `is_active=true` | Losowe hasło (min. 12 znaków), zapis w DB (BCrypt), e-mail z hasłem w jawnej postaci |
+| Inna rola (`MANAGER`, `CUSTOMER`, …) lub brak konta | Brak zmian w DB, nadal **204** |
+| Rate limit | Ten sam limit co próby logowania (10 / 15 min / IP) |
+
+**Uwaga:** Dotyczy **tylko kuriera/pracownika (`EMPLOYEE`)**, nie managera ani klienta WWW. Po resecie mobilka loguje się nowym hasłem (`staff/login` + 2FA jak zwykle).
+
 ---
 
 ## Środowiska

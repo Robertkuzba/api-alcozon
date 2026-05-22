@@ -51,7 +51,8 @@ public class SecurityConfig {
                             "/api/auth/staff/login",
                             "/api/auth/staff/verify-device",
                             "/api/auth/refresh",
-                            "/api/auth/guest"
+                            "/api/auth/guest",
+                            "/api/auth/password-reset/request"
                     ).permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll();
                     auth.requestMatchers("/api/security/app-check", "/api/security/app-check/**").permitAll();

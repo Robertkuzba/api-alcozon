@@ -1,6 +1,7 @@
 package com.alcoholfactory.api.modules.auth.api;
 
 import com.alcoholfactory.api.modules.auth.dto.LoginRequest;
+import com.alcoholfactory.api.modules.auth.dto.PasswordResetRequest;
 import com.alcoholfactory.api.modules.auth.dto.RefreshRequest;
 import com.alcoholfactory.api.modules.auth.dto.RegisterRequest;
 import com.alcoholfactory.api.modules.auth.dto.StaffLoginRequest;
@@ -8,12 +9,14 @@ import com.alcoholfactory.api.modules.auth.dto.StaffLoginResponse;
 import com.alcoholfactory.api.modules.auth.dto.TokenResponse;
 import com.alcoholfactory.api.modules.auth.dto.VerifyDeviceRequest;
 import com.alcoholfactory.api.modules.auth.service.AuthService;
+import com.alcoholfactory.api.modules.auth.service.EmployeePasswordResetService;
 import com.alcoholfactory.api.modules.auth.service.StaffAuthService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,6 +33,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final StaffAuthService staffAuthService;
+    private final EmployeePasswordResetService employeePasswordResetService;
 
     @PostMapping("/register")
     @Operation(summary = "Rejestracja (CUSTOMER)")
@@ -53,6 +57,13 @@ public class AuthController {
     @Operation(summary = "Potwierdzenie kodu 4-cyfrowego z e-maila (po staff/login)")
     public TokenResponse verifyDevice(@Valid @RequestBody VerifyDeviceRequest request) {
         return staffAuthService.verifyDevice(request);
+    }
+
+    @PostMapping("/password-reset/request")
+    @Operation(summary = "Reset hasła pracownika (EMPLOYEE) — publiczny, zawsze 204")
+    public ResponseEntity<Void> requestEmployeePasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        employeePasswordResetService.requestReset(request.email());
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PostMapping("/refresh")
