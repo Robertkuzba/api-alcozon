@@ -60,7 +60,7 @@ public class AuthController {
     }
 
     @PostMapping("/password-reset/request")
-    @Operation(summary = "Reset hasła pracownika (EMPLOYEE) — publiczny, zawsze 204")
+    @Operation(summary = "Reset hasła staff (EMPLOYEE, MANAGER) — publiczny, zawsze 204")
     public ResponseEntity<Void> requestEmployeePasswordReset(@Valid @RequestBody PasswordResetRequest request) {
         employeePasswordResetService.requestReset(request.email());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();

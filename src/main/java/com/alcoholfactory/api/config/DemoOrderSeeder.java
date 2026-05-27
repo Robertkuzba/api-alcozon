@@ -40,6 +40,8 @@ public class DemoOrderSeeder implements CommandLineRunner {
 
     private static final String SEED_CHECK_NUMBER = "701101";
     private static final String MICHAL_SEED_CHECK_NUMBER = "701112";
+    private static final String DESKTOP_SEED_CHECK_NUMBER = "701114";
+    private static final String DESKTOP_PENDING_SEED_CHECK = "701117";
     private static final String CUSTOMER_EMAIL = "customer@example.com";
     private static final String CUSTOMER_PASSWORD = "Customer123!";
     private static final String EMPLOYEE_EMAIL = "employee@example.com";
@@ -60,6 +62,12 @@ public class DemoOrderSeeder implements CommandLineRunner {
         }
         if (!orderRepository.existsByClientOrderNumber(MICHAL_SEED_CHECK_NUMBER)) {
             seedMichalDemoOrders();
+        }
+        if (!orderRepository.existsByClientOrderNumber(DESKTOP_SEED_CHECK_NUMBER)) {
+            seedBartekDesktopDeliveries();
+        }
+        if (!orderRepository.existsByClientOrderNumber(DESKTOP_PENDING_SEED_CHECK)) {
+            seedBartekPendingDeliveries();
         }
     }
 
@@ -129,6 +137,65 @@ public class DemoOrderSeeder implements CommandLineRunner {
                   DELIVERED=701110, CANCELLED=701111.
                 Customer: {} / {}
                 """, CUSTOMER_EMAIL, CUSTOMER_PASSWORD);
+    }
+
+    /** Desktop: tylko PENDING + bez kuriera (widok „Oczekujace dostawy”). */
+    private void seedBartekPendingDeliveries() {
+        User customer = ensureCustomer();
+        Product product = resolveSeedProduct();
+        Instant now = Instant.now();
+
+        createOrder(customer, product, "701117", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Pending seed 1", "ul. Oczekujaca 1", "Wrocław", "50-101",
+                        "DeliveryStatus=PENDING, courier=null"),
+                now.minus(20, ChronoUnit.MINUTES), null);
+
+        createOrder(customer, product, "701118", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Pending seed 2", "ul. Oczekujaca 2", "Wrocław", "50-102",
+                        "Druga PENDING dla Desktop"),
+                now.minus(10, ChronoUnit.MINUTES), null);
+
+        createOrder(customer, product, "701119", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Pending seed 3", "ul. Oczekujaca 3", "Wrocław", "50-103",
+                        "Trzecia PENDING — assign kuriera w Desktop"),
+                now.minus(5, ChronoUnit.MINUTES), null);
+
+        log.info("""
+                Seeded Desktop PENDING deliveries: 701117, 701118, 701119
+                (IN_DELIVERY + Delivery PENDING, bez kuriera).
+                Desktop: GET /api/deliveries + filtr status=PENDING
+                """);
+    }
+
+    /** Zamówienia pod Desktop (Bartek): dostawy bez kuriera + jedna z przypisaniem. */
+    private void seedBartekDesktopDeliveries() {
+        User customer = ensureCustomer();
+        User employee = userRepository.findByEmail(EMPLOYEE_EMAIL)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Brak " + EMPLOYEE_EMAIL + " — uruchom DataInitializer"));
+        Product product = resolveSeedProduct();
+        Instant now = Instant.now();
+
+        createOrder(customer, product, "701114", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Desktop seed A", "ul. Bartka 1", "Wrocław", "50-001",
+                        "GET /api/deliveries — bez kuriera (assign w Desktop)"),
+                now.minus(45, ChronoUnit.MINUTES), null);
+
+        createOrder(customer, product, "701115", OrderStatus.IN_DELIVERY, null, DeliveryStatus.PENDING,
+                address("Desktop seed B", "ul. Bartka 2", "Wrocław", "50-002",
+                        "Druga dostawa bez kuriera"),
+                now.minus(30, ChronoUnit.MINUTES), null);
+
+        createOrder(customer, product, "701116", OrderStatus.IN_DELIVERY, employee, DeliveryStatus.ASSIGNED,
+                address("Desktop seed C (przypisana)", "ul. Bartka 3", "Wrocław", "50-003",
+                        "Dostawa juz z kurierem employee@example.com"),
+                now.minus(15, ChronoUnit.MINUTES), null);
+
+        log.info("""
+                Seeded Desktop demo deliveries: 701114, 701115=IN_DELIVERY bez kuriera,
+                701116=IN_DELIVERY przypisana do {}.
+                Desktop: GET /api/deliveries
+                """, EMPLOYEE_EMAIL);
     }
 
     /** Zamówienia pod testy kuriera Michała (idempotentne po numerze 701112). */

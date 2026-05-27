@@ -307,7 +307,7 @@ Bezpieczeństwo API opiera się na uwierzytelnianiu tokenowym, kontroli ról ora
     Role (RBAC) & \texttt{GUEST}, \texttt{CUSTOMER}, \texttt{EMPLOYEE}, \texttt{MANAGER} --- adnotacje \texttt{@PreAuthorize} na kontrolerach. \\
     2FA staff & Logowanie pracowników: kod 4-cyfrowy na nowe \texttt{deviceId}; zaufane urządzenia w tabeli \texttt{trusted\_devices}. \\
     Walidacja wejścia & Jakarta Validation na DTO żądań --- druga linia obrony względem klientów. \\
-    Hasła & BCrypt (\texttt{PasswordEncoder}); reset hasła pracownika --- losowe hasło tymczasowe e-mailem. \\
+    Hasła & BCrypt (\texttt{PasswordEncoder}); reset hasła staff (EMPLOYEE, MANAGER) --- losowe hasło tymczasowe e-mailem. \\
     Rate limiting & Bucket4j: logowanie 10/15\,min/IP; wyszukiwarka produktów 5\,req/s/IP; śledzenie zamówienia 30/min/IP. \\
     CORS & Whitelist originów (\texttt{app.cors.allowed-origins}) --- m.in.\ Vercel i localhost. \\
     WebSocket & Autoryzacja przy \texttt{CONNECT} i \texttt{SUBSCRIBE} --- token JWT w nagłówku STOMP. \\
@@ -379,7 +379,7 @@ Testy automatyczne uruchamiane poleceniem \texttt{./mvnw verify} (wymaga Dockera
   \item rate limiting logowania (\texttt{AuthLoginRateLimitMvcTest}),
   \item przejścia statusów zamówień i dostaw (\texttt{OrderStatusTransitionMvcTest}, \texttt{DeliveryAssignAuthorizationMvcTest}),
   \item zamówienia własne i notyfikacje (\texttt{CustomOrderStatusMvcTest}, \texttt{DefaultOrderRealtimeNotifierTest}),
-  \item reset hasła pracownika (\texttt{EmployeePasswordResetMvcTest}).
+  \item reset hasła staff --- EMPLOYEE i MANAGER (\texttt{EmployeePasswordResetMvcTest}).
 \end{itemize}
 
 CI w repozytorium GitHub uruchamia pełną weryfikację Maven przy każdym pushu na gałąź główną.

@@ -1,5 +1,6 @@
 package com.alcoholfactory.api.modules.auth.service;
 
+import com.alcoholfactory.api.common.domain.UserRole;
 import com.alcoholfactory.api.config.MailProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,19 +16,32 @@ public class EmployeePasswordResetMailService {
     private final JavaMailSender mailSender;
     private final MailProperties mailProperties;
 
-    public void sendNewPassword(String toEmail, String plainPassword) {
-        String subject = "Alkozon — nowe hasło do konta pracownika";
+    public void sendNewPassword(String toEmail, String plainPassword, UserRole role) {
+        boolean manager = role == UserRole.MANAGER;
+        String subject = manager
+                ? "Alkozon — nowe haslo do konta managera"
+                : "Alkozon — nowe haslo do konta pracownika";
+        String loginHint = manager
+                ? "Zaloguj sie w aplikacji Desktop (staff/login) i przy pierwszym logowaniu potwierdz urzadzenie kodem 2FA z e-maila."
+                : "Zaloguj sie w aplikacji mobilnej (staff/login) i przy pierwszym logowaniu potwierdz urzadzenie kodem 2FA z e-maila.";
         String body = """
-                Otrzymujesz nowe hasło do aplikacji Alkozon (konto pracownika):
+                Otrzymujesz nowe haslo do aplikacji Alkozon (%s):
 
                 %s
 
-                Zaloguj się i zmień hasło, jeśli Twoja aplikacja na to pozwala.
-                Jeśli nie prosiłeś o reset — skontaktuj się z administratorem.
-                """.formatted(plainPassword);
+                %s
+                Jesli nie prosiles o reset — skontaktuj sie z administratorem.
+                """.formatted(
+                manager ? "konto managera" : "konto pracownika",
+                plainPassword,
+                loginHint);
 
         if (mailProperties.logOnly()) {
-            log.info("Employee password reset mail (log-only) to={} password={}", toEmail, plainPassword);
+            log.info(
+                    "Staff password reset mail (log-only) role={} to={} password={}",
+                    role,
+                    toEmail,
+                    plainPassword);
             return;
         }
 
@@ -38,10 +52,14 @@ public class EmployeePasswordResetMailService {
         message.setText(body);
         try {
             mailSender.send(message);
-            log.info("Employee password reset email sent to {}", toEmail);
+            log.info("Staff password reset email sent role={} to={}", role, toEmail);
         } catch (Exception ex) {
-            log.error("Employee password reset email failed to={}. Cause: {}", toEmail, ex.getMessage());
-            log.warn("Employee password reset mail (fallback log-only) to={} password={}", toEmail, plainPassword);
+            log.error("Staff password reset email failed role={} to={}. Cause: {}", role, toEmail, ex.getMessage());
+            log.warn(
+                    "Staff password reset mail (fallback log-only) role={} to={} password={}",
+                    role,
+                    toEmail,
+                    plainPassword);
         }
     }
 }

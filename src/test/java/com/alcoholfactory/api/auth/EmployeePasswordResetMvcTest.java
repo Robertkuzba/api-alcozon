@@ -33,9 +33,13 @@ class EmployeePasswordResetMvcTest extends AbstractIntegrationTest {
     }
 
     @AfterEach
-    void restoreSeededEmployeePassword() {
+    void restoreSeededStaffPasswords() {
         userRepository.findByEmail(TestDataSeeder.EMPLOYEE_EMAIL).ifPresent(user -> {
             user.setPasswordHash(passwordEncoder.encode(TestDataSeeder.EMPLOYEE_PASSWORD));
+            userRepository.save(user);
+        });
+        userRepository.findByEmail(TestDataSeeder.MANAGER_EMAIL).ifPresent(user -> {
+            user.setPasswordHash(passwordEncoder.encode(TestDataSeeder.MANAGER_PASSWORD));
             userRepository.save(user);
         });
     }
@@ -69,7 +73,7 @@ class EmployeePasswordResetMvcTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void requestReset_manager_doesNotChangePassword_andReturns204() throws Exception {
+    void requestReset_manager_updatesPassword_andReturns204() throws Exception {
         mockMvc.perform(post("/api/auth/password-reset/request")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -78,7 +82,9 @@ class EmployeePasswordResetMvcTest extends AbstractIntegrationTest {
                 .andExpect(status().isNoContent());
 
         var user = userRepository.findByEmail(TestDataSeeder.MANAGER_EMAIL).orElseThrow();
-        assertThat(passwordEncoder.matches(TestDataSeeder.MANAGER_PASSWORD, user.getPasswordHash())).isTrue();
+        assertThat(user.getRole()).isEqualTo(UserRole.MANAGER);
+        assertThat(passwordEncoder.matches(FIXED_RESET_PASSWORD, user.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches(TestDataSeeder.MANAGER_PASSWORD, user.getPasswordHash())).isFalse();
     }
 
     @Test

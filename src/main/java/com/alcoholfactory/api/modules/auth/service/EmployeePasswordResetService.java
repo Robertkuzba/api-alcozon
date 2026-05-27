@@ -9,9 +9,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class EmployeePasswordResetService {
+
+    private static final Set<UserRole> STAFF_RESET_ROLES =
+            EnumSet.of(UserRole.EMPLOYEE, UserRole.MANAGER);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -19,7 +25,7 @@ public class EmployeePasswordResetService {
     private final PasswordResetProperties passwordResetProperties;
 
     /**
-     * Reset hasła dla aktywnego użytkownika z rolą {@link UserRole#EMPLOYEE}.
+     * Reset hasła dla aktywnego użytkownika z rolą {@link UserRole#EMPLOYEE} lub {@link UserRole#MANAGER}.
      * Zawsze kończy się bez wyjątku (kontroler zwraca 204), także gdy e-mail nie istnieje
      * lub rola jest inna — bez ujawniania, czy konto jest w systemie.
      */
@@ -30,7 +36,7 @@ public class EmployeePasswordResetService {
             return;
         }
         userRepository.findByEmail(normalized).ifPresent(user -> {
-            if (user.getRole() != UserRole.EMPLOYEE || !user.isActive()) {
+            if (!STAFF_RESET_ROLES.contains(user.getRole()) || !user.isActive()) {
                 return;
             }
             applyReset(user);
@@ -43,6 +49,6 @@ public class EmployeePasswordResetService {
                 : TemporaryPasswordGenerator.generate();
         user.setPasswordHash(passwordEncoder.encode(plain));
         userRepository.save(user);
-        mailService.sendNewPassword(user.getEmail(), plain);
+        mailService.sendNewPassword(user.getEmail(), plain, user.getRole());
     }
 }

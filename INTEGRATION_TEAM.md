@@ -284,24 +284,25 @@ Migracje: **V18** (`client_order_number`), **V19** (statusy jak sklep + `deliver
 **`manager@example.com` — brak skrzynki:** kod 2FA nie da się odebrać. Skrypty w `scripts/`:
 - `trust-staff-device.ps1` — SQL do Neon (`trusted_devices`) + ten sam `deviceId` przy loginie → bez 2FA.
 - `assign-courier-michal.ps1` — przypisanie do Michała (domyślnie numery z dnia: **149471** sklep, **992698** custom); `-ClientOrderNumbers "a,b"`; login **Robert**; wymaga **MANAGER** + status **IN_DELIVERY** (inaczej brak `Delivery`).
+- `seed-desktop-deliveries.ps1` — dostawy demo Desktop: **701114–701116** + **701117–701119** (PENDING, bez kuriera — widok „Oczekujące”); `-PendingOnly` tylko 701117–119; wymaga **MANAGER**.
 
-### Reset hasła pracownika (mobilka / EMPLOYEE)
+### Reset hasła staff (EMPLOYEE / MANAGER)
 
 `POST /api/auth/password-reset/request` — **bez JWT** (publiczny), **zawsze 204** (nie ujawnia, czy e-mail jest w systemie).
 
-**Tylko rola `EMPLOYEE`** — dla `MANAGER` / `CUSTOMER` API **nic nie robi** (brak maila), mimo 204. Manager: `staff/login` + 2FA / `trusted_devices`, nie ten endpoint.
+Obsługiwane role: **`EMPLOYEE`** (mobilka / kurier) i **`MANAGER`** (Desktop). Dla `CUSTOMER` i innych ról API **nic nie robi** (brak maila), mimo 204.
 
 ```json
-{ "email": "michal.nocun@studenci.collegiumwitelona.pl" }
+{ "email": "bartosz.dobros@studenci.collegiumwitelona.pl" }
 ```
 
 | Warunek | Działanie |
 |--------|-----------|
-| Użytkownik istnieje, rola **`EMPLOYEE`**, `is_active=true` | Losowe hasło (min. 12 znaków), zapis w DB (BCrypt), e-mail z hasłem w jawnej postaci |
-| Inna rola (`MANAGER`, `CUSTOMER`, …) lub brak konta | Brak zmian w DB, nadal **204** |
+| Użytkownik istnieje, rola **`EMPLOYEE`** lub **`MANAGER`**, `is_active=true` | Losowe hasło (min. 12 znaków), zapis w DB (BCrypt), e-mail z hasłem w jawnej postaci |
+| Inna rola (`CUSTOMER`, …) lub brak konta | Brak zmian w DB, nadal **204** |
 | Rate limit | Ten sam limit co próby logowania (10 / 15 min / IP) |
 
-**Uwaga:** Dotyczy **tylko kuriera/pracownika (`EMPLOYEE`)**, nie managera ani klienta WWW. Po resecie mobilka loguje się nowym hasłem (`staff/login` + 2FA jak zwykle).
+**Uwaga:** Po resecie logowanie przez **`POST /api/auth/staff/login`** + 2FA / `trusted_devices` (nie `POST /api/auth/login`). Desktop: formularz resetu hasła wywołuje ten sam endpoint.
 
 ---
 
