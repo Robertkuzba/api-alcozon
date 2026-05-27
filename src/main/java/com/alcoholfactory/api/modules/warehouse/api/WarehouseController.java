@@ -1,7 +1,7 @@
 package com.alcoholfactory.api.modules.warehouse.api;
 
-import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentOrder;
 import com.alcoholfactory.api.modules.warehouse.dto.CreateReplenishmentRequest;
+import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentOrderResponse;
 import com.alcoholfactory.api.modules.warehouse.service.WarehouseService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,7 +30,7 @@ public class WarehouseController {
 
     @PostMapping("/replenishment")
     @ResponseStatus(HttpStatus.CREATED)
-    public ReplenishmentOrder create(
+    public ReplenishmentOrderResponse create(
             @AuthenticationPrincipal AppUserDetails user,
             @Valid @RequestBody CreateReplenishmentRequest request
     ) {
@@ -38,7 +38,7 @@ public class WarehouseController {
     }
 
     @GetMapping("/replenishment")
-    public List<ReplenishmentOrder> history() {
+    public List<ReplenishmentOrderResponse> history() {
         return warehouseService.history();
     }
 }

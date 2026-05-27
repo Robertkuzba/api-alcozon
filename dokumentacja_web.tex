@@ -1,0 +1,618 @@
+% Kompilacja: cd latex && make pdf
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{needspace}
+\usepackage{placeins}
+\usepackage{float}
+\usepackage{etoolbox}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+
+% Mniej „rozerwanych” akapitów i nagłówków na granicy stron
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\raggedbottom
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!70!black,
+  pdftitle={Dokumentacja webowa Alkozon},
+  pdfauthor={Jakub Janiec},
+}
+
+% Przed ważnym blokiem: jeśli nie ma miejsca, zacznij na nowej stronie
+\newcommand{\blok}[1]{\needspace{9\baselineskip}#1}
+\newcommand{\tabela}[1]{\needspace{11\baselineskip}#1}
+\newcommand{\rysunek}[1]{\needspace{14\baselineskip}#1}
+
+% Sekcja/podsekcja: albo cała na bieżącej stronie, albo w całości na następnej
+% (bez „dwóch linijek” nagłówka na dole strony i reszty na kolejnej)
+\newenvironment{calosc}{%
+  \Needspace{17\baselineskip}%
+  \begin{samepage}%
+}{%
+  \end{samepage}%
+}
+\pretocmd{\section}{\Needspace{17\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{14\baselineskip}}{}{}
+
+\lstdefinestyle{shell}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+}
+\lstdefinestyle{tree}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+}
+
+% Sekcja UI: nowa strona; kolejne rysunki w tej samej sekcji bez podziału strony
+\newcommand{\uiSekcja}[1]{\clearpage\subsection*{#1}}
+\newcommand{\uiRysunek}[3]{%
+  \needspace{10\baselineskip}%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{#1}{%
+      \includegraphics[width=0.92\textwidth,keepaspectratio]{#1}%
+    }{%
+      \fbox{\begin{minipage}{0.88\textwidth}
+        \centering\vspace{2.2cm}
+        \small\textit{Brak pliku:} \texttt{#1}
+        \vspace{2.2cm}
+      \end{minipage}}%
+    }%
+    \caption{#2}
+    \label{fig:#3}
+  \end{figure}%
+}
+
+\title{%
+  \textbf{Aplikacja webowa Alkozon}\\[0.4em]
+  \large Dokumentacja projektowa --- klient webowy
+}
+\author{Jakub Janiec}
+\date{Legnica, 2026}
+
+\begin{document}
+
+\begin{titlepage}
+  \thispagestyle{empty}
+  \centering
+  \vspace*{1cm}
+  {\large Collegium Witelona Uczelnia Państwowa\par}
+  \vspace{0.5cm}
+  {\large Zaawansowane metody programowania\par}
+  \vspace{2.5cm}
+  {\LARGE\bfseries Aplikacja webowa Alkozon\par}
+  \vspace{0.8cm}
+  {\large Dokumentacja projektowa\par}
+  \vspace{0.5cm}
+  {\large Temat: Firma produkująca alkohol --- system obsługi zamówień\par}
+  \vfill
+  {\large Autor:\par}
+  {\large Jakub Janiec\par}
+  \vspace{1cm}
+  {\normalsize Repozytorium: \url{https://github.com/Jakub137/web-Alkozon}\par}
+  \vspace{0.5cm}
+  {\normalsize Wdrożenie: \url{https://web-alkozon.vercel.app/}\par}
+  \vspace{1.5cm}
+  Legnica, 2026
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+%==============================================================================
+\chapter{Wstęp}
+%==============================================================================
+
+\blok{%
+W ramach projektu zespołowego opracowano system \textbf{Alkozon} --- platformę obsługi sprzedaży produktów alkoholowych. Użytkownik może przeglądać katalog, składać zamówienia standardowe lub skonfigurować własny trunek, śledzić status realizacji, założyć konto lub korzystać z serwisu jako gość. Sprzedaż alkoholu wymaga potwierdzenia pełnoletności.
+
+Niniejsze sprawozdanie dotyczy \textbf{wyłącznie aplikacji webowej} (\texttt{web-Alkozon}) --- klienta działającego w przeglądarce, zrealizowanego w technologii Next.js i komunikującego się z centralnym API systemu. Pozostałe komponenty rozwiązania (aplikacja mobilna, aplikacja desktopowa) są opracowywane przez innych członków zespołu i nie stanowią przedmiotu tego dokumentu.
+
+Zakres opracowania obejmuje: założenia funkcjonalne, stos technologiczny, architekturę, bezpieczeństwo warstwy prezentacji, narzędzia jakości kodu (Prettier, ESLint), wzorce projektowe wraz z opisem ich zastosowania w kodzie, testy automatyczne, wdrożenie aplikacji webowej oraz dokumentację interfejsu użytkownika.
+}
+
+%==============================================================================
+\chapter{Założenia projektowe}
+%==============================================================================
+
+\blok{%
+Poniżej przedstawiono wymagania funkcjonalne aplikacji webowej wynikające ze specyfikacji projektu (tabela~\ref{tab:zalozenia}).
+}
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Założenia funkcjonalne klienta webowego}
+  \label{tab:zalozenia}
+  \begin{tabular}{@{}cl@{}}
+    \toprule
+    \textbf{Lp.} & \textbf{Założenie} \\
+    \midrule
+    1 & Zamawianie produktów (sklep, koszyk, checkout). \\
+    2 & Śledzenie zamówienia po numerze i e-mailu. \\
+    3 & Własne zamówienie --- konfigurator trunku. \\
+    4 & Rejestracja i logowanie (\texttt{CUSTOMER}). \\
+    5 & Gość + weryfikacja wieku (bez 18+ brak zakupu). \\
+    6 & Informacje o alkoholach (FAQ, historia). \\
+    7 & Tryb ciemny, język PL / EN. \\
+    8 & Responsywny interfejs (RWD). \\
+    9 & Połączenie z API; status zamówienia na żywo (STOMP). \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+}
+
+Część mechanizmów bezpieczeństwa (np.\ hashowanie haseł, autoryzacja po stronie serwera) jest realizowana w API. Aplikacja webowa uzupełnia je walidacją danych wejściowych w formularzach oraz kontrolą dostępu w interfejsie użytkownika.
+
+%==============================================================================
+\chapter{Stack technologiczny}
+%==============================================================================
+
+\section{Wybór technologii}
+
+\blok{%
+Warstwa prezentacji została zrealizowana w oparciu o Next.js, TypeScript, React oraz Tailwind CSS (tabela~\ref{tab:stack}).
+}
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Stos technologiczny web-Alkozon}
+  \label{tab:stack}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{Warstwa} & \textbf{Technologia} \\
+    \midrule
+    Framework & Next.js 16 (App Router) --- routing, szybkie ładowanie stron. \\
+    UI & React 19, TypeScript 5 --- komponenty i typowanie. \\
+    Style & Tailwind CSS v4 --- responsywność bez pisania dużych plików CSS. \\
+    Formularze & react-hook-form + Zod --- walidacja zgodna z API. \\
+    Realtime & @stomp/stompjs --- WebSocket, zmiany statusu zamówienia. \\
+    Ikony & lucide-react. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+}
+
+\section{Testy i CI}
+
+Testy jednostkowe i integracyjne wykonuje się przy użyciu Vitest oraz Testing Library; testy end-to-end --- Playwright. Repozytorium zawiera workflow GitHub Actions (lint, build, testy w kilku jobach).
+
+%==============================================================================
+\chapter{Architektura i opis działania}
+%==============================================================================
+
+\section{Struktura katalogów}
+
+\blok{%
+Struktura kodu została podzielona tak, aby komponenty stron w \texttt{src/app/} ograniczały się do prezentacji, a logika komunikacji z API znajdowała się w \texttt{src/lib/api/}:
+}
+
+\begin{lstlisting}[style=tree]
+web-Alkozon/
+  src/app/         # strony (shop, cart, login, ...)
+  src/components/  # przyciski, karty, naglowek
+  src/context/     # Auth, Cart, Language, Theme, Age
+  src/lib/api/     # fasada HTTP
+  src/lib/realtime/# STOMP
+  tests/           # unit, integracja, e2e
+\end{lstlisting}
+
+\section{Przepływ danych}
+
+\rysunek{%
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1cm and 1.2cm,
+    box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.7cm, align=center, font=\small},
+    db/.style={cylinder, draw, shape border rotate=90, aspect=0.25, minimum height=0.9cm, align=center, font=\small},
+  ]
+    \node[box] (pages) {Strony UI};
+    \node[box, below=of pages] (api) {lib/api};
+    \node[box, below=of api] (rest) {REST API};
+    \node[db, below=of rest] (db) {Baza};
+    \node[box, right=2.8cm of api] (stomp) {STOMP};
+    \draw[-{Stealth[length=2mm]}] (pages) -- (api);
+    \draw[-{Stealth[length=2mm]}] (api) -- (rest);
+    \draw[-{Stealth[length=2mm]}] (rest) -- (db);
+    \draw[-{Stealth[length=2mm]}] (pages) -- (stomp);
+    \draw[-{Stealth[length=2mm]}] (stomp) -- (rest);
+  \end{tikzpicture}
+  \caption{Uproszczony przepływ danych aplikacji webowej}
+  \label{fig:arch}
+\end{figure}
+}
+
+\FloatBarrier
+Użytkownik wchodzi na stronę, potwierdza wiek, potem może przejść do sklepu. Żeby złożyć zamówienie, musi być zalogowany jako \texttt{CUSTOMER}. Śledzenie zamówienia działa też bez konta (numer + e-mail).
+
+%==============================================================================
+\chapter{Funkcjonalności klienta webowego}
+%==============================================================================
+
+\begin{calosc}
+\section{Sklep i koszyk}
+Katalog dostępny jest pod adresem \texttt{/shop}; stan koszyka przechowywany jest w \texttt{CartContext}. Złożenie zamówienia wymaga konta z rolą \texttt{CUSTOMER} oraz potwierdzonej pełnoletności.
+\end{calosc}
+
+\begin{calosc}
+\section{Zamówienie własne}
+Strona \texttt{/custom-order} umożliwia konfigurację trunku. Przy wielu pozycjach w koszyku generowany jest \textbf{osobny numer zamówienia klienckiego} na każdą sztukę (implementacja w \texttt{cart/page.tsx}), co rozwiązuje konflikt HTTP\,409 przy ponownym użyciu tego samego numeru.
+\end{calosc}
+
+\begin{calosc}
+\section{Śledzenie zamówienia}
+Strona \texttt{/order-status} realizuje śledzenie publiczne: najpierw zapytanie \texttt{/api/orders/track}, a w przypadku braku wyniku --- \texttt{/api/custom-orders/track}.
+\end{calosc}
+
+\begin{calosc}
+\section{Konto, gość, język, motyw}
+Rejestracja obejmuje walidację hasła (Zod). Logowanie oparte jest na tokenach JWT; dodatkowo zastosowano licznik nieudanych prób w przeglądarce (maks.\ 5). Gość przechodzi przez modal weryfikacji wieku --- bez potwierdzenia pełnoletności zakup alkoholu jest zablokowany. Dostępne są sekcje FAQ i historia oraz przełącznik języka PL/EN i trybu ciemnego.
+\end{calosc}
+
+\begin{calosc}
+\section{Realtime}
+Po zalogowaniu aplikacja może subskrybować zdarzenia STOMP (\texttt{subscribeOrderStatusUpdates}) --- widok listy zamówień i statusu aktualizuje się bez przeładowania strony.
+\end{calosc}
+
+%==============================================================================
+\chapter{Bezpieczeństwo}
+%==============================================================================
+
+\blok{%
+Bezpieczeństwo systemu Alkozon opiera się na współpracy warstwy webowej z centralnym API. Niniejszy rozdział opisuje mechanizmy realizowane w aplikacji Next.js udostępnianej użytkownikowi w przeglądarce: jak chronią dane wprowadzane w formularzach, jak zarządzają sesją oraz jakie zabezpieczenia transportowe stosuje hosting. Hashowanie haseł, podpisywanie tokenów JWT, kontrola ról po stronie serwera i operacje na bazie danych należą do API --- aplikacja webowa je wspiera poprzez walidację wejścia, poprawną obsługę odpowiedzi oraz ograniczenie dostępu w interfejsie.
+}
+
+\begin{calosc}
+\section{Zakres odpowiedzialności warstwy webowej}
+
+Warstwa prezentacji nie zastępuje zabezpieczeń serwera --- pełni rolę pierwszej linii obrony i warstwy użyteczności. Użytkownik otrzymuje natychmiastową informację o błędzie (np.\ zbyt słabe hasło) zanim żądanie trafi do API; w koszyku i przy weryfikacji wieku interfejs uniemożliwia przejście do zakupu alkoholu osobom nieuprawnionym. Krytyczne decyzje autoryzacyjne muszą być powtórzone po stronie API; web zmniejsza liczbę błędnych żądań i utrudnia obejście reguł biznesowych wyłącznie manipulacją DOM w przeglądarce.
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Bezpieczeństwo --- skrót realizacji w aplikacji webowej}
+  \label{tab:security}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{Obszar} & \textbf{Realizacja w aplikacji webowej} \\
+    \midrule
+    Walidacja danych & Zod, \texttt{react-hook-form}, wzorce zgodne z API (\texttt{backendPatterns.ts}). \\
+    Kontrola dostępu (UI) & Rola \texttt{CUSTOMER}, potwierdzona pełnoletność, bramka wieku 18+. \\
+    Sesja & \texttt{AuthContext}, tokeny Bearer, odświeżanie przy \texttt{401}. \\
+    Ochrona sesji & Auto-wylogowanie po 15\,min bezczynności; synchronizacja wylogowania między kartami. \\
+    Nagłówki HTTP & HSTS, \texttt{X-Frame-Options}, CSP w trybie \texttt{Report-Only} (\texttt{next.config.ts}). \\
+    Transport & HTTPS na Vercel; STOMP przez \texttt{wss}. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+}
+\end{calosc}
+
+\begin{calosc}
+\section{Walidacja formularzy i ograniczanie niebezpiecznego wejścia}
+
+Formularze logowania i rejestracji korzystają z \texttt{react-hook-form} oraz schematów \textbf{Zod}. Przed wysłaniem żądania do API sprawdzane są m.in.: poprawny format adresu e-mail, obecność hasła przy logowaniu, wymagania dotyczące siły hasła przy rejestracji, dozwolony zestaw znaków w nazwie użytkownika oraz potwierdzenie pełnoletności. Wzorce walidacyjne (np.\ \texttt{SAFE\_TEXT\_REGEX}) są zdefiniowane w \texttt{src/lib/validation/backendPatterns.ts} i są zgodne z regułami backendu, dzięki czemu komunikaty błędów są spójne w całym systemie.
+
+W polach tekstowych blokowane są znaki niedozwolone tam, gdzie API stosuje analogiczne ograniczenia. Nie jest to jedyna ochrona przed atakami injection --- aplikacja webowa nie wykonuje zapytań SQL --- lecz ogranicza przypadkowe lub złośliwe wpisy już na etapie wprowadzania danych i poprawia doświadczenie użytkownika. Ostateczna weryfikacja DTO odbywa się po stronie serwera API.
+\end{calosc}
+
+\begin{calosc}
+\section{Bramka wieku i kontrola dostępu w interfejsie}
+
+Ze względu na charakter produktu (alkohol) zastosowano \textbf{bramkę wieku} (\texttt{AgeContext}). Użytkownik musi potwierdzić pełnoletność; oznaczenie jako niepełnoletni skutkuje wyświetleniem strony z ograniczeniem zamiast ścieżki zakupowej. Gość przechodzi przez modal weryfikacji przed korzystaniem ze sklepu.
+
+W koszyku dodatkowo weryfikowane są rola użytkownika (\texttt{CUSTOMER}) oraz status pełnoletności --- dopiero wtedy odblokowany zostaje formularz danych dostawy i możliwość złożenia zamówienia. Mechanizm ten realizuje reguły RBAC na poziomie prezentacji: nawet przy poprawnym tokenie użytkownik bez odpowiedniej roli lub bez potwierdzonego wieku nie przejdzie przez interfejs do finalizacji transakcji (serwer API musi te same warunki egzekwować przy przyjmowaniu zamówienia).
+\end{calosc}
+
+\begin{calosc}
+\section{Obsługa sesji i tokenów}
+
+Stan zalogowania utrzymywany jest w \texttt{AuthContext}. Żądania wymagające autoryzacji przechodzą przez warstwę \texttt{authorizedRequest}, która dołącza access token w nagłówku \texttt{Authorization}, a w razie odpowiedzi \texttt{401} próbuje odświeżyć sesję przy użyciu refresh tokena i ponowić zapytanie z nowym access tokenem. Generowanie, podpisywanie i weryfikacja tokenów JWT należą do backendu; aplikacja webowa przechowuje je po stronie klienta i przekazuje zgodnie z kontraktem API.
+
+Dodatkowo zaimplementowano \textbf{auto-wylogowanie} po 15 minutach braku aktywności (ruch myszy, kliknięcia, klawiatura, przewijanie). Ogranicza to ryzyko pozostawienia otwartej sesji na współdzielonym komputerze.
+
+Na etapie finalnym projektu wprowadzono \textbf{synchronizację wylogowania między kartami} przeglądarki (zdarzenie \texttt{storage}): wylogowanie w jednej karcie czyści stan sesji w pozostałych i informuje użytkownika komunikatem. Zmiana nie modyfikuje kontraktu z API --- dotyczy wyłącznie spójności stanu po stronie klienta.
+
+Przy logowaniu stosowany jest pomocniczy \textbf{licznik nieudanych prób} w przeglądarce (maksymalnie 5) --- uzupełnia on ewentualny rate limiting po stronie serwera i ogranicza wielokrotne wysyłanie błędnych danych z tego samego urządzenia.
+\end{calosc}
+
+\begin{calosc}
+\section{Ochrona procesu składania zamówienia}
+
+W module koszyka zastosowano blokadę \texttt{submitLockRef}, która uniemożliwia wielokrotne, bardzo szybkie kliknięcie przycisku złożenia zamówienia i tym samym podwójne wysłanie tego samego żądania. Przy konflikcie numeru zamówienia (odpowiedź \texttt{409}) frontend generuje nowy numer klienta i ponawia próbę --- użytkownik nie musi ręcznie poprawiać danych po kolizji identyfikatora.
+\end{calosc}
+
+\begin{calosc}
+\section{Obsługa błędów API w warstwie prezentacji}
+
+Klient HTTP mapuje istotne kody statusu na komunikaty zrozumiałe w UI (przez adapter błędów i słowniki PL/EN), zamiast prezentować surową treść techniczną. W praktyce obsługiwane są m.in.: \texttt{401} (brak lub wygasła autoryzacja), \texttt{403} (brak uprawnień), \texttt{409} (konflikt numeru zamówienia), \texttt{429} (zbyt wiele prób) oraz \texttt{500+} (błąd serwera). Dzięki temu użytkownik wie, czy powinien się ponownie zalogować, odczekać, czy skontaktować się z obsługą --- bez analizowania odpowiedzi JSON.
+\end{calosc}
+
+\begin{calosc}
+\section{Nagłówki bezpieczeństwa HTTP (Next.js)}
+
+W pliku \texttt{next.config.ts} skonfigurowano nagłówki bezpieczeństwa dla wszystkich ścieżek aplikacji:
+\begin{itemize}[noitemsep]
+  \item \texttt{Strict-Transport-Security} --- wymusza korzystanie z HTTPS w przeglądarce po pierwszym połączeniu;
+  \item \texttt{X-Content-Type-Options: nosniff} --- ogranicza MIME sniffing;
+  \item \texttt{X-Frame-Options: DENY} --- chroni przed osadzaniem strony w obcych ramkach (clickjacking);
+  \item \texttt{Referrer-Policy: strict-origin-when-cross-origin} --- ogranicza wyciek pełnych adresów URL w nagłówku referer;
+  \item \texttt{Permissions-Policy} --- wyłącza nieużywane uprawnienia przeglądarki (kamera, mikrofon, geolokalizacja, płatności).
+\end{itemize}
+
+Dodatkowo ustawiono \texttt{Content-Security-Policy-Report-Only} --- polityka CSP w trybie \emph{tylko raportowania}, bez blokowania zasobów. Na końcowym etapie projektu unikano twardego CSP, które mogłoby zakłócić połączenie z API, WebSocketami STOMP, Firebase lub zasobami Next.js na Vercel; tryb \texttt{Report-Only} dokumentuje przygotowanie polityki bez ryzyka awarii wdrożonej aplikacji.
+\end{calosc}
+
+\begin{calosc}
+\section{Elementy poza zakresem aplikacji webowej}
+
+Poniższe mechanizmy są istotne dla całego systemu, lecz nie są implementowane w repozytorium \texttt{web-Alkozon}: hashowanie haseł, weryfikacja JWT po stronie serwera, RBAC w API, rate limiting serwera, walidacja DTO na backendzie, przechowywanie danych w bazie, konfiguracja CORS API, sekrety serwera oraz firewall/WAF infrastruktury API. Aplikacja webowa integruje się z nimi przez poprawne żądania HTTP i obsługę odpowiedzi.
+
+Na platformie \textbf{Vercel} zapewniane są m.in.\ certyfikat TLS, obsługa HTTPS oraz konfiguracja zmiennych środowiskowych (\texttt{NEXT\_PUBLIC\_*}). W ramach oddawania projektu nie wprowadzano ryzykownych zmian integracji (migracja na cookies zamiast tokenów, twarde CSP blokujące zasoby, modyfikacja payloadów checkoutu ani adresów API) --- wzmocniono warstwę prezentacji i nagłówki bez zakłócania działającego połączenia z backendem.
+\end{calosc}
+
+\begin{calosc}
+\section{Weryfikacja testami automatycznymi}
+
+Zachowania związane z bezpieczeństwem są objęte testami w pakiecie \texttt{npm run test:run} oraz scenariuszami E2E (Playwright): m.in.\ walidacja haseł, \texttt{AuthContext}, modal weryfikacji wieku, koszyk, auto-logout oraz obsługa błędów klienta HTTP przy śledzeniu zamówień. Testy ułatwiają wykrycie regresji przy kolejnych zmianach w kodzie.
+\end{calosc}
+
+%==============================================================================
+\chapter{Jakość kodu --- Prettier i ESLint}
+%==============================================================================
+
+\blok{%
+Zgodnie z wymaganiami przedmiotu zwrócono uwagę na \emph{czysty kod}. Oprócz podziału modułów zastosowano narzędzia wspierające spójność stylu i wykrywanie błędów.
+}
+
+\begin{calosc}
+\section{Prettier --- spójny wygląd plików}
+
+\textbf{Prettier} służy do automatycznego formatowania kodu źródłowego (wcięcia, cudzysłowy, łamanie linii w JSX). Nie weryfikuje logiki programu, lecz zapewnia jednolitą strukturę plików w repozytorium. Uruchomienie: \texttt{npm run format} lub weryfikacja: \texttt{npm run format:check}.
+\end{calosc}
+
+\begin{calosc}
+\section{ESLint --- reguły React/Next}
+
+\textbf{ESLint} analizuje poprawność idiomów React i Next.js (m.in.\ reguły hooków). Uruchomienie: \texttt{npm run lint}. Pakiet \textbf{eslint-config-prettier} wyłącza reguły formatowania kolidujące z Prettierem --- formatter odpowiada za układ, linter za semantykę kodu.
+\end{calosc}
+
+\begin{calosc}
+\section{Podsumowanie rozdziału}
+
+Prettier odpowiada za jednolity format, ESLint --- za zgodność z konwencjami frameworka. Uzupełniają one testy automatyczne, podnosząc czytelność i jakość utrzymania kodu.
+\end{calosc}
+
+%==============================================================================
+\chapter{Wzorce projektowe}
+%==============================================================================
+
+\blok{%
+Poniżej przedstawiono wzorce projektowe z katalogu GoF (kreacyjne, strukturalne, behawioralne), które występują w kodzie aplikacji webowej. Dla każdego wzorca podano definicję, zastosowanie w projekcie oraz uzasadnienie wyboru.
+}
+
+\section{Wzorce strukturalne}
+
+\begin{calosc}
+\subsection{Facade (fasada)}
+
+\textbf{Od czego jest:} Fasada to ``jedno wejście'' do bardziej skomplikowanego podsystemu. Zamiast wołać wiele niskopoziomowych operacji, klient korzysta z jednej uproszczonej warstwy.
+
+\textbf{Zastosowanie w projekcie:} Cały dostęp do REST API realizowany jest przez folder \texttt{src/lib/api/}. Funkcja \texttt{apiRequest()} w \texttt{client.ts} realizuje wywołania \texttt{fetch}, składanie adresu URL na podstawie \texttt{NEXT\_PUBLIC\_API\_URL}, ustawienie nagłówka \texttt{Authorization} oraz parsowanie błędów JSON. Osobne pliki (\texttt{orders.ts}, \texttt{auth.ts}, \texttt{customOrders.ts}) eksportują gotowe funkcje typu ``pobierz zamówienia'', ``zaloguj''.
+
+\textbf{Po co:} Komponenty stron (koszyk, sklep, logowanie) nie powielają tej samej obsługi HTTP. Jak zmieni się sposób zwracania błędu z API, poprawiam głównie \texttt{lib/api}, a nie dziesiątki komponentów.
+\end{calosc}
+
+\begin{calosc}
+\subsection{Adapter (adapter)}
+
+\textbf{Od czego jest:} Adapter dopasowuje jeden interfejs do drugiego --- gdy ``źródło'' mówi innym językiem niż ``odbiorca''.
+
+\textbf{Zastosowanie w projekcie:} Serwer API zwraca komunikaty po angielsku lub w stałych kodach (\texttt{Invalid credentials}). UI ma pokazywać teksty po polsku lub angielsku z moich słowników. Plik \texttt{mapApiErrorMessage.ts} mapuje odpowiedź API na klucze ze słownika (\texttt{dict.auth.errors}) --- użytkownik widzi zrozumiały komunikat, a nie surowy JSON.
+
+\textbf{Po co:} Oddzielam protokół API od warstwy prezentacji.
+\end{calosc}
+
+\begin{calosc}
+\subsection{Composite (kompozyt)}
+
+\textbf{Od czego jest:} Kompozyt traktuje pojedyncze obiekty i ich grupy tak samo --- budujemy drzewo z mniejszych części.
+
+\textbf{Zastosowanie w projekcie:} W React całe UI to drzewo komponentów. W \texttt{layout.tsx} jest szkielet strony (nagłówek, menu), a \texttt{\{children\}} to treść konkretnej podstrony. W \texttt{providers.tsx} owijam aplikację kilkoma kontekstami (\texttt{ThemeProvider}, \texttt{AuthProvider}, \texttt{CartProvider} itd.) --- dla stron wygląda to jak jeden ``korzeń'', choć w środku jest wiele providerów.
+
+\textbf{Po co:} Nie muszę powtarzać nagłówka na każdej stronie; Next.js sam składa layout + page.
+\end{calosc}
+
+\section{Wzorce behawioralne}
+
+\begin{calosc}
+\subsection{Observer (obserwator)}
+
+\textbf{Od czego jest:} Jeden obiekt publikuje zdarzenia, a wielu obserwatorów może się \textbf{subskrybować} i reagować bez ciągłego odpytywania ``czy coś się zmieniło''.
+
+\textbf{Zastosowanie (STOMP):} W \texttt{lib/realtime/orderUpdates.ts} funkcja \texttt{subscribeOrderStatusUpdates} łączy się z WebSocketem, subskrybuje kolejkę \texttt{/user/queue/order-updates} i przy każdej wiadomości woła przekazany callback \texttt{onEvent}. Strony \texttt{order-status} i \texttt{my-orders} podpinają się pod to i odświeżają widok statusu.
+
+\textbf{Zastosowanie (powiadomienia w interfejsie):} \texttt{NotificationContext} trzyma listę powiadomień; komponenty mogą dodać wpis, a \texttt{NotificationContainer} je wyświetla --- klasyczny publish/subscribe w obrębie Reacta.
+
+\textbf{Po co:} Status zamówienia może zmienić się na magazynie lub u kuriera --- użytkownik widzi update bez F5.
+\end{calosc}
+
+\begin{calosc}
+\subsection{Strategy (strategia)}
+
+\textbf{Od czego jest:} Strategia pozwala \textbf{wymieniać algorytm} (tu: sposób dostarczenia treści) bez przerabiania całej klasy/komponentu.
+
+\textbf{Zastosowanie w projekcie:} \texttt{LanguageContext} trzyma \texttt{lang} (\texttt{pl} lub \texttt{en}) i wystawia \texttt{dict} --- albo \texttt{dictionaries.pl}, albo \texttt{dictionaries.en}. Komponenty biorą teksty z \texttt{dict}, a przełącznik języka tylko zmienia strategię słownika.
+
+\textbf{Po co:} Nie kopiuję całych stron na PL i EN; zmieniam jeden kontekst.
+\end{calosc}
+
+\begin{calosc}
+\subsection{State (stan)}
+
+\textbf{Od czego jest:} Obiekt zmienia zachowanie, gdy zmienia się jego stan wewnętrzny (maszyna stanów).
+
+\textbf{Zastosowanie w projekcie:} \texttt{AgeContext} przechowuje np.\ \texttt{ageStatus}: niezweryfikowany, pełnoletni, niepełnoletni. Od tego zależy, czy pokażę modal, czy \texttt{UnderageRestrictedPage}, czy pozwolę wejść do koszyku z alkoholem.
+
+\textbf{Po co:} Reguły prawne (18+) są w jednym miejscu, a nie rozrzucone po dziesiątkach warunków \texttt{if} w każdym pliku.
+\end{calosc}
+
+\section{Wzorzec kreacyjny}
+
+\begin{calosc}
+\subsection{Factory Method (metoda fabryczna)}
+
+\textbf{Od czego jest:} Podklasa lub funkcja decyduje, \textbf{jaki obiekt} (tu: jaka wartość) ma powstać, żeby ukryć szczegóły tworzenia.
+
+\textbf{Zastosowanie w projekcie:} W koszyku \texttt{generateOrderNumber()} w \texttt{cart/page.tsx} generuje unikalny numer zamówienia klienckiego w jednym miejscu. Przy wielu sztukach custom order wołam ją wielokrotnie; przy konflikcie 409 generuję nowy numer w pętli.
+
+\textbf{Po co:} Nie kopiuję losowania numeru w trzech miejscach --- jak zmieni się format numeru, poprawiam jedną funkcję.
+\end{calosc}
+
+\FloatBarrier
+
+%==============================================================================
+\chapter{Testowanie}
+%==============================================================================
+
+\blok{%
+Testy uruchamiane są lokalnie oraz w procesie CI (GitHub Actions). Podział przedstawia tabela~\ref{tab:tests}.
+}
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Testy automatyczne web-Alkozon}
+  \label{tab:tests}
+  \begin{tabular}{@{}lllr@{}}
+    \toprule
+    \textbf{Typ} & \textbf{Gdzie} & \textbf{Komenda} & \textbf{Liczba} \\
+    \midrule
+    Unit & \texttt{tests/unit/} & \texttt{npm run test:unit} & 408 \\
+    Integracja UI & \texttt{tests/integration/} & \texttt{test:integration-ui} & 6 \\
+    Integracja API & \texttt{tests/integration/api/} & \texttt{test:integration-api} & 12 \\
+    E2E & Playwright & \texttt{npm run test:e2e} & osobne scenariusze \\
+    Razem (bez E2E) & --- & \texttt{npm run test:run} & 426 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+}
+
+Zakres obejmuje m.in.\ walidację haseł, \texttt{AuthContext}, koszyk, modal weryfikacji wieku oraz logikę klienta HTTP (śledzenie zamówień sklepowych i custom). Testy ułatwiają wykrywanie regresji przy zmianach w kodzie.
+
+%==============================================================================
+\chapter{Integracja z API i wdrożenie}
+%==============================================================================
+
+\begin{calosc}
+\section{Konfiguracja połączenia z API}
+
+Aplikacja webowa komunikuje się z zewnętrznym serwerem API za pomocą zmiennych środowiskowych (plik \texttt{.env.local} lokalnie, panel Vercel na produkcji).
+
+\noindent\textbf{\texttt{NEXT\_PUBLIC\_API\_URL}} --- \textbf{bazowy adres URL serwera API} (backendu), bez ukośnika na końcu, np.\ \texttt{https://api-alcozon.onrender.com} lub lokalnie \texttt{http://localhost:8080}. W kodzie (\texttt{src/lib/api/client.ts}) żądania HTTP budowane są jako suma tej wartości i ścieżki endpointu (np.\ \texttt{/api/orders}). \textbf{To nie jest adres samej aplikacji webowej} --- adres strony dla użytkownika to osobna domena (patrz wdrożenie).
+
+\noindent\textbf{\texttt{NEXT\_PUBLIC\_WS\_URL}} (opcjonalnie) --- pełny adres WebSocket do powiadomień STOMP; jeśli brak, aplikacja próbuje wywnioskować go z \texttt{NEXT\_PUBLIC\_API\_URL}.
+\end{calosc}
+
+\begin{calosc}
+\section{Uruchomienie lokalne}
+
+\begin{lstlisting}[style=shell]
+cd web-Alkozon
+npm install
+cp .env.example .env.local
+npm run dev
+\end{lstlisting}
+\noindent W \texttt{.env.local} należy ustawić \texttt{NEXT\_PUBLIC\_API\_URL} na działający serwer API. Aplikacja webowa uruchamia się pod \texttt{http://localhost:3000}.
+\end{calosc}
+
+\begin{calosc}
+\section{Wdrożenie produkcyjne}
+
+\blok{%
+Aplikacja webowa została wdrożona na platformie \textbf{Vercel}. Publiczny adres:
+}
+
+\noindent\url{https://web-alkozon.vercel.app/}
+
+\noindent W panelu Vercel skonfigurowano zmienne środowiskowe (w tym \texttt{NEXT\_PUBLIC\_API\_URL} wskazujące na działające API systemu). Wdrożenie realizowane jest z repozytorium Git --- po pushu uruchamiany jest build Next.js oraz publikacja wersji produkcyjnej. Komunikacja z przeglądarką odbywa się przez HTTPS.
+
+\noindent Przed oddaniem projektu zweryfikowano ścieżki: rejestracja, złożenie zamówienia oraz śledzenie statusu na środowisku produkcyjnym.
+\end{calosc}
+
+%==============================================================================
+\chapter{Wygląd interfejsu}
+%==============================================================================
+
+\blok{%
+Poniżej przedstawiono zrzuty ekranu wdrożonej aplikacji webowej (\url{https://web-alkozon.vercel.app/}). Dla wybranych funkcji pokazano kilka etapów (np.\ konfiguracja zamówienia własnego). Każda podsekcja zaczyna się na nowej stronie, aby zachować czytelny układ w PDF.
+}
+
+\uiSekcja{Strona główna}
+\uiRysunek{../screenshots/web/strona_glowna.png}{Strona główna --- nawigacja i wejście do modułów aplikacji}{strona-glowna}
+
+\uiSekcja{Sklep}
+\uiRysunek{../screenshots/web/sklep.png}{Katalog produktów}{sklep}
+
+\uiSekcja{Koszyk}
+\uiRysunek{../screenshots/web/koszyk.png}{Koszyk oraz formularz danych zamówienia}{koszyk}
+
+\uiSekcja{Logowanie i rejestracja}
+\uiRysunek{../screenshots/web/formularz_logowania.png}{Formularz logowania użytkownika}{logowanie}
+\uiRysunek{../screenshots/web/formularz_rejestracji.png}{Formularz rejestracji z walidacją hasła}{rejestracja}
+
+\uiSekcja{Zamówienie własne (konfigurator)}
+\uiRysunek{../screenshots/web/zamowienie_wlasne_1.png}{Zamówienie własne --- etap 1 konfiguracji trunku}{zw-1}
+\uiRysunek{../screenshots/web/zamowienie_wlasne_2.png}{Zamówienie własne --- etap 2}{zw-2}
+\uiRysunek{../screenshots/web/zamowienie_wlasne_3.png}{Zamówienie własne --- etap 3 (podsumowanie / złożenie)}{zw-3}
+
+\uiSekcja{Śledzenie statusu zamówienia}
+\uiRysunek{../screenshots/web/status_zamowienia_1.png}{Śledzenie zamówienia --- wprowadzenie numeru i adresu e-mail}{status-1}
+\uiRysunek{../screenshots/web/status_zamowienia_2.png}{Śledzenie zamówienia --- widok statusu realizacji oraz lista produktów}{status-2}
+
+\uiSekcja{Sekcja informacyjna}
+\uiRysunek{../screenshots/web/sekcja_FAQ.png}{Sekcja FAQ}{faq}
+\uiRysunek{../screenshots/web/historia_alkoholii.png}{Historia alkoholi --- widok listy kategorii}{historia}
+\uiRysunek{../screenshots/web/historia_vodka_1.png}{Historia alkoholi --- artykuł (fragment 1)}{historia-vodka-1}
+\uiRysunek{../screenshots/web/historia_vodka_2.png}{Historia alkoholi --- artykuł (fragment 2)}{historia-vodka-2}
+
+%==============================================================================
+\chapter{Podsumowanie}
+%==============================================================================
+
+\blok{%
+W ramach projektu opracowano i wdrożono \textbf{aplikację webową Alkozon} w technologii Next.js, spełniającą założenia specyfikacji: sklep i koszyk, zamówienia własne, śledzenie zamówień, obsługę konta użytkownika, weryfikację pełnoletności, wersję językową PL/EN, tryb ciemny oraz integrację z centralnym API. Struktura kodu opiera się na warstwie \texttt{lib/api} i kontekstach React; jakość utrzymania wspierają Prettier, ESLint oraz testy automatyczne.
+
+Zastosowano m.in.\ wzorce \textbf{Facade} i \textbf{Adapter} w komunikacji z API, \textbf{Observer} przy aktualizacji statusu (STOMP), \textbf{Strategy} przy internacjonalizacji oraz \textbf{State} przy weryfikacji wieku. W repozytorium zdefiniowano \textbf{426} testów w pakiecie \texttt{npm run test:run} (bez scenariuszy E2E).
+
+Aplikacja dostępna jest pod adresem \url{https://web-alkozon.vercel.app/}. Po stronie warstwy webowej zastosowano m.in.\ walidację formularzy, bramkę wieku, obsługę sesji z odświeżaniem tokenów, auto-wylogowanie, synchronizację sesji między kartami oraz nagłówki bezpieczeństwa HTTP. Kierunki dalszego rozwoju obejmują rozszerzenie powiadomień Web Push oraz dodatkowe scenariusze testów E2E w Playwright.
+}
+
+\end{document}

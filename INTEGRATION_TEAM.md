@@ -281,9 +281,15 @@ Migracje: **V18** (`client_order_number`), **V19** (statusy jak sklep + `deliver
 **Lokalnie:** Mailpit — `docker compose up` → SMTP `localhost:1025`, UI http://localhost:8025  
 **Prod:** zmienne `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` (np. SendGrid); awaryjnie `MAIL_LOG_ONLY=true` (kod w logach — tylko dev/debug).
 
+**`manager@example.com` — brak skrzynki:** kod 2FA nie da się odebrać. Skrypty w `scripts/`:
+- `trust-staff-device.ps1` — SQL do Neon (`trusted_devices`) + ten sam `deviceId` przy loginie → bez 2FA.
+- `assign-courier-michal.ps1` — przypisanie do Michała (domyślnie numery z dnia: **149471** sklep, **992698** custom); `-ClientOrderNumbers "a,b"`; login **Robert**; wymaga **MANAGER** + status **IN_DELIVERY** (inaczej brak `Delivery`).
+
 ### Reset hasła pracownika (mobilka / EMPLOYEE)
 
 `POST /api/auth/password-reset/request` — **bez JWT** (publiczny), **zawsze 204** (nie ujawnia, czy e-mail jest w systemie).
+
+**Tylko rola `EMPLOYEE`** — dla `MANAGER` / `CUSTOMER` API **nic nie robi** (brak maila), mimo 204. Manager: `staff/login` + 2FA / `trusted_devices`, nie ten endpoint.
 
 ```json
 { "email": "michal.nocun@studenci.collegiumwitelona.pl" }

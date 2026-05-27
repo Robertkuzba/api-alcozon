@@ -6,8 +6,11 @@ import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
 import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentLine;
 import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentOrder;
+import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentLine;
 import com.alcoholfactory.api.modules.warehouse.dto.CreateReplenishmentRequest;
 import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentLineRequest;
+import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentLineResponse;
+import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentOrderResponse;
 import com.alcoholfactory.api.modules.warehouse.repository.ReplenishmentOrderRepository;
 import com.alcoholfactory.api.modules.product.repository.ProductRepository;
 import com.alcoholfactory.api.modules.inventory.repository.RawMaterialRepository;
@@ -30,7 +33,7 @@ public class WarehouseService {
     private final RawMaterialRepository rawMaterialRepository;
 
     @Transactional
-    public ReplenishmentOrder create(Long managerId, CreateReplenishmentRequest req) {
+    public ReplenishmentOrderResponse create(Long managerId, CreateReplenishmentRequest req) {
         User manager = userRepository.findById(managerId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Manager not found"));
         ReplenishmentOrder order = ReplenishmentOrder.builder()
@@ -54,7 +57,10 @@ public class WarehouseService {
             }
             order.getLines().add(rl);
         }
-        return replenishmentOrderRepository.save(order);
+        ReplenishmentOrder saved = replenishmentOrderRepository.save(order);
+        return replenishmentOrderRepository.findWithDetailsById(saved.getId())
+                .map(this::toResponse)
+                .orElseThrow(() -> new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "Replenishment order not found after save"));
     }
 
     private void validateLine(ReplenishmentLineRequest line) {
@@ -66,7 +72,48 @@ public class WarehouseService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReplenishmentOrder> history() {
-        return replenishmentOrderRepository.findAllByOrderByCreatedAtDesc();
+    public List<ReplenishmentOrderResponse> history() {
+        return replenishmentOrderRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private ReplenishmentOrderResponse toResponse(ReplenishmentOrder order) {
+        List<ReplenishmentLineResponse> lineDtos = order.getLines().stream()
+                .map(this::toLineResponse)
+                .toList();
+        User manager = order.getManager();
+        return new ReplenishmentOrderResponse(
+                order.getId(),
+                manager.getId(),
+                manager.getEmail(),
+                order.getNote(),
+                order.getStatus(),
+                order.getCreatedAt(),
+                lineDtos
+        );
+    }
+
+    private ReplenishmentLineResponse toLineResponse(ReplenishmentLine line) {
+        Long productId = null;
+        String productName = null;
+        Long rawMaterialId = null;
+        String rawMaterialName = null;
+        if (line.getProduct() != null) {
+            productId = line.getProduct().getId();
+            productName = line.getProduct().getName();
+        }
+        if (line.getRawMaterial() != null) {
+            rawMaterialId = line.getRawMaterial().getId();
+            rawMaterialName = line.getRawMaterial().getName();
+        }
+        return new ReplenishmentLineResponse(
+                line.getId(),
+                productId,
+                productName,
+                rawMaterialId,
+                rawMaterialName,
+                line.getQuantityDelta()
+        );
     }
 }

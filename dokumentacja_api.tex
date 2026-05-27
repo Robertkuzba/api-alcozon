@@ -1,0 +1,397 @@
+% Kompilacja (z katalogu projektu):
+%   pdflatex dokumentacja_api.tex
+%   pdflatex dokumentacja_api.tex
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{needspace}
+\usepackage{float}
+\usepackage{etoolbox}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\raggedbottom
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!70!black,
+  pdftitle={Dokumentacja API Alkozon},
+  pdfauthor={Robert Kuzba},
+}
+
+\newcommand{\blok}[1]{\needspace{9\baselineskip}#1}
+\newcommand{\tabela}[1]{\needspace{11\baselineskip}#1}
+\newcommand{\rysunek}[1]{\needspace{14\baselineskip}#1}
+
+\newenvironment{calosc}{%
+  \Needspace{14\baselineskip}%
+  \begin{samepage}%
+}{%
+  \end{samepage}%
+}
+\pretocmd{\section}{\Needspace{14\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{11\baselineskip}}{}{}
+
+\lstdefinestyle{shell}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+}
+\lstdefinestyle{tree}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+}
+
+\title{%
+  \textbf{API Alkozon}\\[0.4em]
+  \large Dokumentacja projektowa --- backend
+}
+\author{Robert Kuzba}
+\date{Legnica, 2026}
+
+\begin{document}
+
+\begin{titlepage}
+  \thispagestyle{empty}
+  \centering
+  \vspace*{1cm}
+  {\large Collegium Witelona Uczelnia Państwowa\par}
+  \vspace{0.5cm}
+  {\large Zaawansowane metody programowania\par}
+  \vspace{2.5cm}
+  {\LARGE\bfseries API Alkozon\par}
+  \vspace{0.8cm}
+  {\large Dokumentacja projektowa\par}
+  \vspace{0.5cm}
+  {\large Temat: Firma produkująca alkohol --- system obsługi zamówień\par}
+  \vfill
+  {\large Autor:\par}
+  {\large Robert Kuzba\par}
+  \vspace{1cm}
+  {\normalsize Repozytorium: \url{https://github.com/Robertkuzba/api-alcozon}\par}
+  \vspace{0.5cm}
+  {\normalsize Wdrożenie: \url{https://api-alcozon.onrender.com}\par}
+  \vspace{0.3cm}
+  {\normalsize Dokumentacja interfejsu: \url{https://api-alcozon.onrender.com/docs}\par}
+  \vspace{1.5cm}
+  Legnica, 2026
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+%==============================================================================
+\chapter{Wstęp}
+%==============================================================================
+
+\blok{%
+W ramach projektu zespołowego opracowano system \textbf{Alkozon} --- platformę obsługi sprzedaży produktów alkoholowych. \textbf{API} (\texttt{alcohol-factory-api}) stanowi centralny backend: udostępnia logikę biznesową, przechowuje dane w PostgreSQL oraz łączy klientów \textbf{web} (Next.js), \textbf{mobilny} (React Native) i \textbf{desktop} (Python).
+
+Niniejsze sprawozdanie dotyczy wyłącznie warstwy serwerowej. Zakres obejmuje: założenia funkcjonalne, stos technologiczny, architekturę modułową, bezpieczeństwo, komunikację w czasie rzeczywistym (STOMP), integrację z aplikacjami klienckimi, testy oraz wdrożenie produkcyjne.
+}
+
+%==============================================================================
+\chapter{Założenia i funkcjonalności}
+%==============================================================================
+
+\blok{%
+Poniżej zestawiono główne obszary funkcjonalne API (tabela~\ref{tab:funkcje}).
+}
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Funkcjonalności backendu Alkozon}
+  \label{tab:funkcje}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{Obszar} & \textbf{Opis} \\
+    \midrule
+    Logika centralna & REST \texttt{/api/*} --- wspólny kontrakt dla Web, Mobile i Desktop. \\
+    Zamówienia sklepowe & Pełny cykl statusów: \texttt{SUBMITTED} $\rightarrow$ \texttt{IN\_PRODUCTION} $\rightarrow$ \texttt{IN\_PACKING} $\rightarrow$ \texttt{IN\_DELIVERY} $\rightarrow$ \texttt{DELIVERED} (oraz \texttt{CANCELLED}). \\
+    Zamówienia własne & Przyjmowanie zapytań z Weba; obsługa przez staff (mobile/desktop). \\
+    Dostawy i kurierzy & Rekord \texttt{Delivery} przy \texttt{IN\_DELIVERY}; przypisanie kuriera (MANAGER); lista zamówień kuriera. \\
+    Real-time & WebSocket STOMP --- natychmiastowe powiadomienia o zmianie statusu (Web, magazyn, kurier). \\
+    Push (mobilka) & Firebase Cloud Messaging po przypisaniu dostawy i zmianach statusu. \\
+    Moduł HR & Rejestracja czasu pracy (clock-in/out, przerwa) --- mobile; agregacja godzin --- desktop (MANAGER). \\
+    Raporty & Sprzedaż, stan magazynu, podsumowanie czasu pracy --- desktop (MANAGER). \\
+    Magazyn / produkty & Katalog, stany, uzupełnienia, administracja użytkowników i ogłoszeń. \\
+    Dokumentacja API & OpenAPI 3 + Swagger UI pod adresem \texttt{/docs}. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+}
+
+%==============================================================================
+\chapter{Stack technologiczny}
+%==============================================================================
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Stos technologiczny API}
+  \label{tab:stack}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{Warstwa} & \textbf{Technologia} \\
+    \midrule
+    Język & Java 21 LTS \\
+    Framework & Spring Boot 4 (Web, Security, Data JPA, WebSocket/STOMP) \\
+    Baza danych & PostgreSQL; migracje Flyway \\
+    Bezpieczeństwo & Spring Security, JWT (access + refresh), BCrypt \\
+    Rate limiting & Bucket4j (filtr servletowy) \\
+    Dokumentacja & springdoc-openapi (Swagger UI) \\
+    Powiadomienia push & Firebase Admin SDK (FCM) \\
+    Konteneryzacja & Docker (\texttt{Dockerfile}, \texttt{docker-compose} dla Postgresa lokalnie) \\
+    CI & GitHub Actions --- \texttt{mvn verify} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+}
+
+%==============================================================================
+\chapter{Architektura}
+%==============================================================================
+
+\section{Struktura modułów}
+
+\blok{%
+Kod źródłowy podzielono na moduły domenowe w pakiecie \texttt{com.alcoholfactory.api.modules.*}:
+}
+
+\begin{lstlisting}[style=tree]
+alcohol-factory-api/
+  src/main/java/.../modules/
+    auth/        # logowanie, JWT, 2FA staff, reset hasla
+    order/       # zamowienia sklepowe i custom
+    delivery/    # dostawy, kurierzy
+    product/     # katalog
+    inventory/   # stany magazynowe
+    warehouse/   # uzupelnienia (MANAGER)
+    hr/          # work-log
+    report/      # raporty (MANAGER)
+    admin/       # uzytkownicy, oferty, ogloszenia
+    device/      # tokeny FCM
+    notification/# STOMP + FCM
+  src/main/resources/db/migration/  # Flyway V1..Vn
+\end{lstlisting}
+
+\section{Przepływ w systemie rozproszonym}
+
+\rysunek{%
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.9cm and 1.1cm,
+    box/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.65cm, align=center, font=\small},
+    api/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.8cm, align=center, font=\small\bfseries, fill=blue!6},
+    db/.style={cylinder, draw, shape border rotate=90, aspect=0.25, minimum height=0.85cm, align=center, font=\small},
+  ]
+    \node[box] (web) {Web};
+    \node[box, right=of web] (mob) {Mobile};
+    \node[box, right=of mob] (desk) {Desktop};
+    \node[api, below=1.4cm of mob] (api) {API REST + STOMP};
+    \node[db, below=of api] (db) {PostgreSQL};
+    \draw[-{Stealth[length=2mm]}] (web) -- (api);
+    \draw[-{Stealth[length=2mm]}] (mob) -- (api);
+    \draw[-{Stealth[length=2mm]}] (desk) -- (api);
+    \draw[-{Stealth[length=2mm]}] (api) -- (db);
+  \end{tikzpicture}
+  \caption{API jako centralny hub komunikacji}
+  \label{fig:arch}
+\end{figure}
+}
+
+REST obsługuje operacje synchroniczne (złożenie zamówienia, zmiana statusu, raporty). STOMP uzupełnia to zdarzeniami push do subskrybentów (np.\ klient web po zalogowaniu, magazyn po temacie \texttt{/topic/orders/staff}, kurier po \texttt{/user/queue/courier-deliveries}).
+
+%==============================================================================
+\chapter{Realizacja funkcjonalności}
+%==============================================================================
+
+\begin{calosc}
+\section{Zamówienia i synchronizacja statusów}
+
+Zamówienia sklepowe (\texttt{/api/orders}) oraz zamówienia własne (\texttt{/api/custom-orders}) korzystają ze wspólnego zestawu statusów (\texttt{OrderStatus}). Zmiana statusu przez pracownika (\texttt{PATCH .../status}) aktualizuje rekord w bazie, a następnie uruchamia \textbf{notifier} czasu rzeczywistego (\texttt{OrderRealtimeNotifier} / \texttt{CustomOrderRealtimeNotifier}), który publikuje zdarzenie STOMP i --- w razie potrzeby --- powiadomienie FCM.
+
+Przy przejściu do \texttt{IN\_DELIVERY} tworzony jest rekord \texttt{Delivery}. Manager przypisuje kuriera endpointem \texttt{PATCH /api/deliveries/\{id\}/assign} (tylko rola \texttt{MANAGER}). Kurier pobiera swoje zlecenia przez \texttt{GET /api/orders/for-courier/\{courierUserId\}\}.
+\end{calosc}
+
+\begin{calosc}
+\section{Powiadomienia w czasie rzeczywistym}
+
+Broker STOMP jest wystawiony pod \texttt{/ws} (protokół \texttt{wss} na produkcji). Przy połączeniu klient przekazuje token JWT w nagłówku \texttt{Authorization} komendy \texttt{CONNECT}. Główne destynacje:
+\begin{itemize}[noitemsep]
+  \item \texttt{/topic/orders/staff} --- magazyn / staff (zmiany statusów),
+  \item \texttt{/topic/orders/dispatch} --- desktop managera (np.\ nowa dostawa bez kuriera),
+  \item \texttt{/user/queue/order-updates} --- klient \texttt{CUSTOMER} (śledzenie własnego zamówienia),
+  \item \texttt{/user/queue/courier-deliveries} --- kurier po przypisaniu.
+\end{itemize}
+\end{calosc}
+
+\begin{calosc}
+\section{Moduł HR (czas pracy)}
+
+Dla roli \texttt{EMPLOYEE} (aplikacja mobilna):
+\begin{itemize}[noitemsep]
+  \item \texttt{POST /api/work-log/clock-in} --- rozpoczęcie pracy,
+  \item \texttt{POST /api/work-log/clock-out} --- zakończenie,
+  \item \texttt{POST /api/work-log/break/start}, \texttt{break/end} --- przerwa,
+  \item \texttt{GET /api/work-log/my?from=\&to=} --- historia własna.
+\end{itemize}
+Manager (desktop) korzysta z \texttt{GET /api/reports/employees/work-summary} oraz \texttt{GET /api/work-log/reports/summary}.
+\end{calosc}
+
+\begin{calosc}
+\section{Analityka i raporty}
+
+Endpointy pod \texttt{/api/reports} (rola \texttt{MANAGER}):
+\begin{itemize}[noitemsep]
+  \item \texttt{GET /reports/sales} --- suma sprzedaży w przedziale dat,
+  \item \texttt{GET /reports/inventory} --- snapshot stanów magazynowych,
+  \item \texttt{GET /reports/employees/work-summary} --- agregacja godzin pracy.
+\end{itemize}
+Dane zasilają wykresy w aplikacji desktopowej.
+\end{calosc}
+
+\begin{calosc}
+\section{Dokumentacja interfejsu (OpenAPI)}
+
+Interaktywna dokumentacja dostępna jest bez dodatkowej instalacji:
+\begin{itemize}[noitemsep]
+  \item lokalnie: \url{http://localhost:8080/docs},
+  \item produkcja: \url{https://api-alcozon.onrender.com/docs}.
+\end{itemize}
+Kontrakt REST jest źródłem prawdy dla zespołów frontendowych (generowanie typów, testy integracyjne w Swaggerze).
+\end{calosc}
+
+%==============================================================================
+\chapter{Bezpieczeństwo}
+%==============================================================================
+
+\blok{%
+Bezpieczeństwo API opiera się na uwierzytelnianiu tokenowym, kontroli ról oraz walidacji i limitach po stronie serwera (tabela~\ref{tab:security}).
+}
+
+\tabela{%
+\begin{table}[H]
+  \centering
+  \caption{Mechanizmy bezpieczeństwa API}
+  \label{tab:security}
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    \textbf{Mechanizm} & \textbf{Realizacja} \\
+    \midrule
+    JWT & Access token (krótki TTL) + refresh token; weryfikacja w filtrze Spring Security. \\
+    Role (RBAC) & \texttt{GUEST}, \texttt{CUSTOMER}, \texttt{EMPLOYEE}, \texttt{MANAGER} --- adnotacje \texttt{@PreAuthorize} na kontrolerach. \\
+    2FA staff & Logowanie pracowników: kod 4-cyfrowy na nowe \texttt{deviceId}; zaufane urządzenia w tabeli \texttt{trusted\_devices}. \\
+    Walidacja wejścia & Jakarta Validation na DTO żądań --- druga linia obrony względem klientów. \\
+    Hasła & BCrypt (\texttt{PasswordEncoder}); reset hasła pracownika --- losowe hasło tymczasowe e-mailem. \\
+    Rate limiting & Bucket4j: logowanie 10/15\,min/IP; wyszukiwarka produktów 5\,req/s/IP; śledzenie zamówienia 30/min/IP. \\
+    CORS & Whitelist originów (\texttt{app.cors.allowed-origins}) --- m.in.\ Vercel i localhost. \\
+    WebSocket & Autoryzacja przy \texttt{CONNECT} i \texttt{SUBSCRIBE} --- token JWT w nagłówku STOMP. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+}
+
+\begin{calosc}
+\section{Podział ról (przykłady)}
+
+\begin{itemize}[noitemsep]
+  \item \texttt{CUSTOMER} --- składanie zamówień, śledzenie, konto.
+  \item \texttt{EMPLOYEE} --- zmiana statusów, magazyn, własny work-log, dostawy przypisane do kuriera.
+  \item \texttt{MANAGER} --- wszystko co EMPLOYEE oraz: przypisanie kuriera, raporty, administracja użytkowników/produktów, magazyn zaawansowany.
+\end{itemize}
+\end{calosc}
+
+%==============================================================================
+\chapter{Integracja z klientami i wdrożenie}
+%==============================================================================
+
+\begin{calosc}
+\section{Kontrakt REST}
+
+Wszystkie endpointy biznesowe mają prefiks \texttt{/api}. Przykłady:
+\begin{itemize}[noitemsep]
+  \item \texttt{POST /api/auth/login} --- klient (CUSTOMER),
+  \item \texttt{POST /api/auth/staff/login} --- pracownik (2FA),
+  \item \texttt{POST /api/orders}, \texttt{PATCH /api/orders/\{id\}/status},
+  \item \texttt{POST /api/custom-orders}, \texttt{PATCH /api/custom-orders/\{id\}/status}.
+\end{itemize}
+\end{calosc}
+
+\begin{calosc}
+\section{Uruchomienie lokalne}
+
+\begin{lstlisting}[style=shell]
+docker compose up -d
+./mvnw spring-boot:run
+\end{lstlisting}
+Swagger: \url{http://localhost:8080/docs}. WebSocket: \texttt{ws://localhost:8080/ws}.
+
+Po pierwszym starcie (profil nie-test) tworzone są konta demo (m.in.\ \texttt{manager@example.com}, \texttt{employee@example.com}) oraz przykładowy produkt --- szczegóły w \texttt{README.md}.
+\end{calosc}
+
+\begin{calosc}
+\section{Wdrożenie produkcyjne}
+
+API wdrożone jest na platformie \textbf{Render} (\url{https://api-alcozon.onrender.com}), baza danych --- \textbf{Neon PostgreSQL}. Migracje Flyway uruchamiane przy starcie aplikacji. Zmienne środowiskowe obejmują m.in.: \texttt{DATABASE\_URL}, \texttt{JWT\_SECRET}, \texttt{APP\_CORS\_ALLOWED\_ORIGINS}, konfigurację SMTP (2FA, reset hasła) oraz opcjonalnie \texttt{FIREBASE\_SERVICE\_ACCOUNT\_JSON} dla pushy mobilnych.
+
+Build obrazu Docker:
+\begin{lstlisting}[style=shell]
+./mvnw -q package -DskipTests
+docker build -t alcohol-api .
+\end{lstlisting}
+\end{calosc}
+
+%==============================================================================
+\chapter{Testowanie}
+%==============================================================================
+
+\blok{%
+Testy automatyczne uruchamiane poleceniem \texttt{./mvnw verify} (wymaga Dockera dla Testcontainers w testach integracyjnych). Pakiet \texttt{src/test/java} obejmuje m.in.:
+}
+
+\begin{itemize}[noitemsep]
+  \item autoryzację i 2FA staff (\texttt{StaffAuthMvcTest}),
+  \item rate limiting logowania (\texttt{AuthLoginRateLimitMvcTest}),
+  \item przejścia statusów zamówień i dostaw (\texttt{OrderStatusTransitionMvcTest}, \texttt{DeliveryAssignAuthorizationMvcTest}),
+  \item zamówienia własne i notyfikacje (\texttt{CustomOrderStatusMvcTest}, \texttt{DefaultOrderRealtimeNotifierTest}),
+  \item reset hasła pracownika (\texttt{EmployeePasswordResetMvcTest}).
+\end{itemize}
+
+CI w repozytorium GitHub uruchamia pełną weryfikację Maven przy każdym pushu na gałąź główną.
+
+%==============================================================================
+\chapter{Podsumowanie}
+%==============================================================================
+
+\blok{%
+Opracowano \textbf{centralne API Alkozon} w technologii Java~21 / Spring Boot~4, integrujące aplikację webową, mobilną i desktopową. Backend realizuje pełny cykl zamówień (sklep i konfigurator własny), moduł dostaw z kurierami, powiadomienia STOMP i FCM, rejestrację czasu pracy oraz raporty dla managera. Zabezpieczenia obejmują JWT z rolami, walidację DTO, BCrypt, rate limiting (Bucket4j) oraz dwuskładnikowe logowanie staff.
+
+API jest udokumentowane w OpenAPI (\texttt{/docs}) i wdrożone pod adresem \url{https://api-alcozon.onrender.com}. Dalszy rozwój obejmuje m.in.\ rozszerzenie raportów, utwardzenie polityki 2FA na środowiskach deweloperskich oraz dalszą automatyzację testów kontraktu z klientami.
+}
+
+\end{document}

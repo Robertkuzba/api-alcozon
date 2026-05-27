@@ -17,6 +17,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+      - name: Make mvnw executable
+        run: chmod +x mvnw
       - name: Run tests (Testcontainers + PostgreSQL)
         env:
           SPRING_PROFILES_ACTIVE: test
