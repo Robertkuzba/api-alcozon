@@ -255,6 +255,14 @@ Migracje: **V18** (`client_order_number`), **V19** (statusy jak sklep + `deliver
 - **`PATCH /api/deliveries/{id}/assign`** — tylko MANAGER, body: `{ "courierId": number }`
 - `PATCH /api/deliveries/{id}/status` — `{ "status": "DELIVERED" | ... }`
 
+### Magazyn — zamówienia uzupełniające (Desktop / Bartek)
+
+- `POST /api/warehouse/replenishment` — tworzy zamówienie ze statusem **`PENDING`** (bez zmiany stanu magazynu).
+- `GET /api/warehouse/replenishment` — historia.
+- `PATCH /api/warehouse/replenishment/{id}` — body: `{ "status": "RECEIVED" }` lub `"COMPLETED"` — **dopiero wtedy** naliczane są `quantityDelta` na produktach/surowcach. Ponowny PATCH → **409**.
+
+Desktop: przycisk „Odebrane” powinien wołać **PATCH** (zamiast ręcznego PATCH inventory), żeby status był spójny po odświeżeniu listy.
+
 ### Auth — klienci (Web / Kuba)
 - `POST /api/auth/register` — body m.in. `ageConfirmed: true` (wymagane); przy `true` ustawiane `ageConfirmedAt`
 - `POST /api/auth/confirm-age` — **GUEST** (→ CUSTOMER) lub **CUSTOMER** bez `ageConfirmedAt` (idempotentne)

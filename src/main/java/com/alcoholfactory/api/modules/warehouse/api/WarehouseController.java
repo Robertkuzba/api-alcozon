@@ -1,6 +1,7 @@
 package com.alcoholfactory.api.modules.warehouse.api;
 
 import com.alcoholfactory.api.modules.warehouse.dto.CreateReplenishmentRequest;
+import com.alcoholfactory.api.modules.warehouse.dto.PatchReplenishmentStatusRequest;
 import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentOrderResponse;
 import com.alcoholfactory.api.modules.warehouse.service.WarehouseService;
 import com.alcoholfactory.api.security.AppUserDetails;
@@ -11,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,5 +43,13 @@ public class WarehouseController {
     @GetMapping("/replenishment")
     public List<ReplenishmentOrderResponse> history() {
         return warehouseService.history();
+    }
+
+    @PatchMapping("/replenishment/{id}")
+    public ReplenishmentOrderResponse applyStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody PatchReplenishmentStatusRequest request
+    ) {
+        return warehouseService.applyStatus(id, request);
     }
 }

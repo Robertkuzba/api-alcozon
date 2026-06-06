@@ -6,8 +6,8 @@ import com.alcoholfactory.api.modules.user.domain.User;
 import com.alcoholfactory.api.modules.user.repository.UserRepository;
 import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentLine;
 import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentOrder;
-import com.alcoholfactory.api.modules.warehouse.domain.ReplenishmentLine;
 import com.alcoholfactory.api.modules.warehouse.dto.CreateReplenishmentRequest;
+import com.alcoholfactory.api.modules.warehouse.dto.PatchReplenishmentStatusRequest;
 import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentLineRequest;
 import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentLineResponse;
 import com.alcoholfactory.api.modules.warehouse.dto.ReplenishmentOrderResponse;
@@ -21,10 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class WarehouseService {
+
+    private static final String STATUS_PENDING = "PENDING";
+    private static final Set<String> FULFILLED_STATUSES = Set.of("RECEIVED", "COMPLETED");
 
     private final ReplenishmentOrderRepository replenishmentOrderRepository;
     private final UserRepository userRepository;
@@ -39,7 +43,7 @@ public class WarehouseService {
         ReplenishmentOrder order = ReplenishmentOrder.builder()
                 .manager(manager)
                 .note(req.note())
-                .status("COMPLETED")
+                .status(STATUS_PENDING)
                 .createdAt(Instant.now())
                 .build();
         for (ReplenishmentLineRequest line : req.lines()) {
@@ -50,10 +54,8 @@ public class WarehouseService {
                     .build();
             if (line.productId() != null) {
                 rl.setProduct(productRepository.getReferenceById(line.productId()));
-                inventoryService.patchProductStock(line.productId(), line.quantityDelta().intValue());
             } else {
                 rl.setRawMaterial(rawMaterialRepository.getReferenceById(line.rawMaterialId()));
-                inventoryService.patchRawMaterial(line.rawMaterialId(), line.quantityDelta());
             }
             order.getLines().add(rl);
         }
@@ -76,6 +78,37 @@ public class WarehouseService {
         return replenishmentOrderRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public ReplenishmentOrderResponse applyStatus(Long orderId, PatchReplenishmentStatusRequest req) {
+        String targetStatus = req.status().trim().toUpperCase();
+        if (!FULFILLED_STATUSES.contains(targetStatus)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "status must be RECEIVED or COMPLETED");
+        }
+        ReplenishmentOrder order = replenishmentOrderRepository.findWithDetailsById(orderId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Replenishment order not found"));
+        if (!STATUS_PENDING.equals(order.getStatus())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Replenishment order is already fulfilled");
+        }
+        applyLinesToInventory(order);
+        order.setStatus(targetStatus);
+        replenishmentOrderRepository.save(order);
+        return toResponse(order);
+    }
+
+    private void applyLinesToInventory(ReplenishmentOrder order) {
+        for (ReplenishmentLine line : order.getLines()) {
+            if (line.getProduct() != null) {
+                inventoryService.patchProductStock(
+                        line.getProduct().getId(),
+                        line.getQuantityDelta().intValue());
+            } else if (line.getRawMaterial() != null) {
+                inventoryService.patchRawMaterial(
+                        line.getRawMaterial().getId(),
+                        line.getQuantityDelta());
+            }
+        }
     }
 
     private ReplenishmentOrderResponse toResponse(ReplenishmentOrder order) {

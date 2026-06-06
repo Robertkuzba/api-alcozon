@@ -210,6 +210,7 @@ Base path: `/api`. Autoryzacja: `Authorization: Bearer <accessToken>`.
 |--------|---------|------|------|
 | POST | `/replenishment` | Zamówienie nowego towaru (produkty/surowce, ilości). | MANAGER |
 | GET | `/replenishment` | Historia zamówień uzupełnień. | MANAGER |
+| PATCH | `/replenishment/{id}` | Przyjęcie dostawy: body `{ "status": "RECEIVED" }` lub `"COMPLETED"` — aktualizacja stanu magazynu. | MANAGER |
 
 ### 5.7 Delivery (`/api/deliveries`)
 
