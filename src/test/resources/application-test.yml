@@ -3,6 +3,16 @@ spring:
   docker:
     compose:
       skip-in-tests: true
+  datasource:
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 60000
+      max-lifetime: 120000
+  test:
+    context:
+      cache:
+        max-size: 8
 
 # Stały sekret w testach (nie zależy od pustego JWT_SECRET w OS)
 jwt:

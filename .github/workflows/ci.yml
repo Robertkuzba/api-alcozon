@@ -42,4 +42,5 @@ jobs:
       - name: Verify (tests + build; style already checked)
         env:
           SPRING_PROFILES_ACTIVE: test
-        run: ./mvnw -B verify -Dcheckstyle.skip=true -Dspotless.check.skip=true
+          TESTCONTAINERS_CHECKS_DISABLE: true
+        run: ./mvnw -B verify "-Dcheckstyle.skip=true" "-Dspotless.check.skip=true"
