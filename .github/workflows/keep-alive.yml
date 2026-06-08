@@ -1,6 +1,4 @@
-# Własny keep-alive dla Render free tier (cold start ~50–90 s).
-# Ping co 14 min — poniżej typowego progu usypiania (~15 min).
-# Nie failuje workflowu przy timeoutie / 503 podczas budzenia JVM.
+# Mam nadzieje, że będzie działać
 name: Keep API warm
 
 on:
