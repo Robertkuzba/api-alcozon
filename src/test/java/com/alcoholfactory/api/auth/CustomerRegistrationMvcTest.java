@@ -99,12 +99,8 @@ class CustomerRegistrationMvcTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + guestToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    """
-                    {
-                      "deliveryAddress": "ul. Testowa 1",
-                      "items": [{"productId": 1, "quantity": 1}]
-                    }
-                    """))
+                    OrderRequestBodies.createWithDelivery(
+                        TestDataSeeder.seededProductId(), "Gość Testowy")))
         .andExpect(status().isForbidden());
   }
 }

@@ -37,8 +37,8 @@ class AppCheckMvcTest extends AbstractIntegrationTest {
   @Test
   void appCheck_acceptsShaWithColons() throws Exception {
     String shaWithColons =
-        "E1:B1:78:30:39:9A:95:2B:8F:F9:05:02:35:D5:DC:98:F0:A2:02:CB:"
-            + "B1:89:41:BE:B0:60:00:71:73:41:AC:7F:6";
+        "E1:B1:78:30:39:9A:95:2B:8F:F9:05:02:3D:5D:C9:8F:0A:20:2C:BB:"
+            + "18:94:1B:EB:06:00:07:17:34:1A:C7:F6";
     String body =
         """
         {

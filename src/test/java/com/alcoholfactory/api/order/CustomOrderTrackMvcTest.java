@@ -47,13 +47,17 @@ class CustomOrderTrackMvcTest extends AbstractIntegrationTest {
                             .build()));
 
     CustomOrder order =
-        customOrderRepository.save(
-            CustomOrder.builder()
-                .customer(customer)
-                .description("Własna nalewka testowa")
-                .clientOrderNumber(CLIENT_NUMBER)
-                .status(OrderStatus.SUBMITTED)
-                .build());
+        customOrderRepository
+            .findByClientOrderNumberWithCustomer(CLIENT_NUMBER)
+            .orElseGet(
+                () ->
+                    customOrderRepository.save(
+                        CustomOrder.builder()
+                            .customer(customer)
+                            .description("Własna nalewka testowa")
+                            .clientOrderNumber(CLIENT_NUMBER)
+                            .status(OrderStatus.SUBMITTED)
+                            .build()));
     customOrderId = order.getId();
   }
 

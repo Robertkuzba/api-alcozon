@@ -7,9 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.alcoholfactory.api.support.AbstractIntegrationTest;
 import com.alcoholfactory.api.support.TestDataSeeder;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.TestPropertySource;
 
-@TestPropertySource(properties = "app.dev.notification-test-hook.enabled=true")
 class NotificationTestHookMvcTest extends AbstractIntegrationTest {
 
   @Test

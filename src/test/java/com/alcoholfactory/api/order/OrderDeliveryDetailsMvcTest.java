@@ -19,6 +19,7 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
     AuthTestClient.Tokens customer =
         AuthTestClient.login(
             mockMvc, TestDataSeeder.CUSTOMER_EMAIL, TestDataSeeder.CUSTOMER_PASSWORD);
+    String clientOrderNumber = "430721-" + System.nanoTime();
 
     mockMvc
         .perform(
@@ -27,10 +28,10 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     OrderRequestBodies.createWithDelivery(
-                        TestDataSeeder.seededProductId(), "Jakub Janiec", "430721")))
+                        TestDataSeeder.seededProductId(), "Jakub Janiec", clientOrderNumber)))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").isNumber())
-        .andExpect(jsonPath("$.clientOrderNumber").value("430721"))
+        .andExpect(jsonPath("$.clientOrderNumber").value(clientOrderNumber))
         .andExpect(jsonPath("$.deliveryDetails.recipientName").value("Jakub Janiec"))
         .andExpect(jsonPath("$.deliveryDetails.city").value("Wrocław"))
         .andExpect(jsonPath("$.deliveryDetails.postalCode").value("50-001"))
@@ -43,6 +44,7 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
         AuthTestClient.login(
             mockMvc, TestDataSeeder.CUSTOMER_EMAIL, TestDataSeeder.CUSTOMER_PASSWORD);
 
+    String clientOrderNumber = "430722-" + System.nanoTime();
     var created =
         mockMvc
             .perform(
@@ -51,12 +53,13 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         OrderRequestBodies.createWithDelivery(
-                            TestDataSeeder.seededProductId(), "Jan Kowalski", "430721")))
+                            TestDataSeeder.seededProductId(), "Jan Kowalski", clientOrderNumber)))
             .andExpect(status().isCreated())
             .andReturn();
 
-    long orderId =
+    Object idObj =
         com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+    long orderId = ((Number) idObj).longValue();
 
     mockMvc
         .perform(
@@ -64,7 +67,7 @@ class OrderDeliveryDetailsMvcTest extends AbstractIntegrationTest {
                 .header("Authorization", "Bearer " + customer.accessToken()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(orderId))
-        .andExpect(jsonPath("$.clientOrderNumber").value("430721"))
+        .andExpect(jsonPath("$.clientOrderNumber").value(clientOrderNumber))
         .andExpect(jsonPath("$.deliveryDetails.recipientName").value("Jan Kowalski"));
   }
 }

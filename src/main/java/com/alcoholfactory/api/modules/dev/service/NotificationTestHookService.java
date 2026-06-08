@@ -66,7 +66,7 @@ public class NotificationTestHookService {
                     new BusinessException(
                         HttpStatus.PRECONDITION_FAILED, "Brak produktu ze stanem magazynowym"));
 
-    String clientOrderNumber = "T" + (System.currentTimeMillis() % 10_000_000L);
+    String clientOrderNumber = "T" + System.nanoTime();
 
     OrderResponse created =
         orderService.create(

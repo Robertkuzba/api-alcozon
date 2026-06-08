@@ -27,3 +27,6 @@ app:
     enabled: false
   mail:
     log-only: true
+  dev:
+    notification-test-hook:
+      enabled: true

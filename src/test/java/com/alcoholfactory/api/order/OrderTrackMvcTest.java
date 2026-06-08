@@ -48,21 +48,25 @@ class OrderTrackMvcTest extends AbstractIntegrationTest {
                             .build()));
 
     CustomerOrder order =
-        orderRepository.save(
-            CustomerOrder.builder()
-                .customer(customer)
-                .status(OrderStatus.IN_PRODUCTION)
-                .clientOrderNumber(CLIENT_ORDER_NUMBER)
-                .deliveryDetails(
-                    OrderDeliveryDetails.builder()
-                        .recipientName("Jan Test")
-                        .streetAddress("ul. Testowa 1")
-                        .city("Warszawa")
-                        .postalCode("00-001")
-                        .country("Polska")
-                        .build())
-                .totalAmount(new BigDecimal("99.99"))
-                .build());
+        orderRepository
+            .findByClientOrderNumberWithCustomer(CLIENT_ORDER_NUMBER)
+            .orElseGet(
+                () ->
+                    orderRepository.save(
+                        CustomerOrder.builder()
+                            .customer(customer)
+                            .status(OrderStatus.IN_PRODUCTION)
+                            .clientOrderNumber(CLIENT_ORDER_NUMBER)
+                            .deliveryDetails(
+                                OrderDeliveryDetails.builder()
+                                    .recipientName("Jan Test")
+                                    .streetAddress("ul. Testowa 1")
+                                    .city("Warszawa")
+                                    .postalCode("00-001")
+                                    .country("Polska")
+                                    .build())
+                            .totalAmount(new BigDecimal("99.99"))
+                            .build()));
     orderId = order.getId();
   }
 
