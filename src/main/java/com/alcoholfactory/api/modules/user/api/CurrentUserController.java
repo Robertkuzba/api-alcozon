@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CurrentUserController {
 
-    private final UserProfileService userProfileService;
+  private final UserProfileService userProfileService;
 
-    @GetMapping("/me")
-    public UserMeResponse me(@AuthenticationPrincipal AppUserDetails principal) {
-        return userProfileService.getFor(principal.getId());
-    }
+  @GetMapping("/me")
+  public UserMeResponse me(@AuthenticationPrincipal AppUserDetails principal) {
+    return userProfileService.getFor(principal.getId());
+  }
 }

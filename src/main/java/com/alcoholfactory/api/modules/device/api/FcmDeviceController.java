@@ -18,14 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class FcmDeviceController {
 
-    private final FcmTokenRegistrationService fcmTokenRegistrationService;
+  private final FcmTokenRegistrationService fcmTokenRegistrationService;
 
-    @PostMapping("/fcm")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void registerFcm(
-            @AuthenticationPrincipal AppUserDetails principal,
-            @Valid @RequestBody RegisterFcmTokenRequest body
-    ) {
-        fcmTokenRegistrationService.register(principal.getId(), body.token(), body.platform());
-    }
+  @PostMapping("/fcm")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void registerFcm(
+      @AuthenticationPrincipal AppUserDetails principal,
+      @Valid @RequestBody RegisterFcmTokenRequest body) {
+    fcmTokenRegistrationService.register(principal.getId(), body.token(), body.platform());
+  }
 }

@@ -12,22 +12,23 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserProfileService {
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
-    public UserMeResponse getFor(long userId) {
-        var u = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
-        return new UserMeResponse(
-                u.getId(),
-                u.getEmail(),
-                u.getRole(),
-                u.getFirstName(),
-                u.getLastName(),
-                u.getPhone(),
-                u.isCourier(),
-                u.isActive(),
-                u.getAgeConfirmedAt()
-        );
-    }
+  @Transactional(readOnly = true)
+  public UserMeResponse getFor(long userId) {
+    var u =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
+    return new UserMeResponse(
+        u.getId(),
+        u.getEmail(),
+        u.getRole(),
+        u.getFirstName(),
+        u.getLastName(),
+        u.getPhone(),
+        u.isCourier(),
+        u.isActive(),
+        u.getAgeConfirmedAt());
+  }
 }

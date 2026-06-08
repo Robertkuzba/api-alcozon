@@ -7,14 +7,15 @@ import java.util.HexFormat;
 
 public final class TokenHasher {
 
-    private TokenHasher() {}
+  private TokenHasher() {}
 
-    public static String sha256Hex(String value) {
-        try {
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+  public static String sha256Hex(String value) {
+    try {
+      byte[] hash =
+          MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(hash);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException(e);
     }
+  }
 }

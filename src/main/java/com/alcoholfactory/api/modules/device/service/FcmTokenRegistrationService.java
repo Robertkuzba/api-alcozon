@@ -14,23 +14,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class FcmTokenRegistrationService {
 
-    private final FcmDeviceTokenRepository fcmDeviceTokenRepository;
-    private final UserRepository userRepository;
+  private final FcmDeviceTokenRepository fcmDeviceTokenRepository;
+  private final UserRepository userRepository;
 
-    @Transactional
-    public void register(Long userId, String token, String platform) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
-        fcmDeviceTokenRepository.findByToken(token).ifPresentOrElse(
-                existing -> {
-                    existing.setUser(user);
-                    existing.setPlatform(platform.trim());
-                },
-                () -> fcmDeviceTokenRepository.save(FcmDeviceToken.builder()
+  @Transactional
+  public void register(Long userId, String token, String platform) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
+    fcmDeviceTokenRepository
+        .findByToken(token)
+        .ifPresentOrElse(
+            existing -> {
+              existing.setUser(user);
+              existing.setPlatform(platform.trim());
+            },
+            () ->
+                fcmDeviceTokenRepository.save(
+                    FcmDeviceToken.builder()
                         .user(user)
                         .token(token.trim())
                         .platform(platform.trim())
-                        .build())
-        );
-    }
+                        .build()));
+  }
 }

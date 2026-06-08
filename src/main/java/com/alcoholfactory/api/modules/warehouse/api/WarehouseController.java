@@ -7,6 +7,7 @@ import com.alcoholfactory.api.modules.warehouse.service.WarehouseService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/warehouse")
 @RequiredArgsConstructor
@@ -29,27 +28,24 @@ import java.util.List;
 @Tag(name = "Warehouse")
 public class WarehouseController {
 
-    private final WarehouseService warehouseService;
+  private final WarehouseService warehouseService;
 
-    @PostMapping("/replenishment")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ReplenishmentOrderResponse create(
-            @AuthenticationPrincipal AppUserDetails user,
-            @Valid @RequestBody CreateReplenishmentRequest request
-    ) {
-        return warehouseService.create(user.getId(), request);
-    }
+  @PostMapping("/replenishment")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ReplenishmentOrderResponse create(
+      @AuthenticationPrincipal AppUserDetails user,
+      @Valid @RequestBody CreateReplenishmentRequest request) {
+    return warehouseService.create(user.getId(), request);
+  }
 
-    @GetMapping("/replenishment")
-    public List<ReplenishmentOrderResponse> history() {
-        return warehouseService.history();
-    }
+  @GetMapping("/replenishment")
+  public List<ReplenishmentOrderResponse> history() {
+    return warehouseService.history();
+  }
 
-    @PatchMapping("/replenishment/{id}")
-    public ReplenishmentOrderResponse applyStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody PatchReplenishmentStatusRequest request
-    ) {
-        return warehouseService.applyStatus(id, request);
-    }
+  @PatchMapping("/replenishment/{id}")
+  public ReplenishmentOrderResponse applyStatus(
+      @PathVariable Long id, @Valid @RequestBody PatchReplenishmentStatusRequest request) {
+    return warehouseService.applyStatus(id, request);
+  }
 }

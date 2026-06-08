@@ -6,6 +6,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record JobOfferRequest(
-        @NotBlank @Pattern(regexp = ValidationPatterns.SAFE_TEXT) @Size(max = 255) String title,
-        @NotBlank @Pattern(regexp = ValidationPatterns.SAFE_TEXT) @Size(max = 8000) String description
-) {}
+    @NotBlank @Pattern(regexp = ValidationPatterns.SAFE_TEXT) @Size(max = 255) String title,
+    @NotBlank @Pattern(regexp = ValidationPatterns.SAFE_TEXT) @Size(max = 8000)
+        String description) {}

@@ -1,4 +1,2 @@
-/**
- * Dostawy: przypisanie kuriera, statusy, adres przesyłki.
- */
+/** Dostawy: przypisanie kuriera, statusy, adres przesyłki. */
 package com.alcoholfactory.api.modules.delivery;

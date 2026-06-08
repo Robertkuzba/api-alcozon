@@ -6,6 +6,7 @@ import com.alcoholfactory.api.modules.admin.service.DeliveryAnnouncementService;
 import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,42 +21,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/admin/delivery-announcements")
 @RequiredArgsConstructor
 @Tag(name = "Delivery announcements")
 public class DeliveryAnnouncementController {
 
-    private final DeliveryAnnouncementService deliveryAnnouncementService;
+  private final DeliveryAnnouncementService deliveryAnnouncementService;
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    public List<AnnouncementResponse> list() {
-        return deliveryAnnouncementService.list();
-    }
+  @GetMapping
+  @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+  public List<AnnouncementResponse> list() {
+    return deliveryAnnouncementService.list();
+  }
 
-    @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
-    @ResponseStatus(HttpStatus.CREATED)
-    public AnnouncementResponse create(
-            @AuthenticationPrincipal AppUserDetails user,
-            @Valid @RequestBody AnnouncementRequest req
-    ) {
-        return deliveryAnnouncementService.create(user.getId(), req);
-    }
+  @PostMapping
+  @PreAuthorize("hasRole('MANAGER')")
+  @ResponseStatus(HttpStatus.CREATED)
+  public AnnouncementResponse create(
+      @AuthenticationPrincipal AppUserDetails user, @Valid @RequestBody AnnouncementRequest req) {
+    return deliveryAnnouncementService.create(user.getId(), req);
+  }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    public AnnouncementResponse update(@PathVariable Long id, @Valid @RequestBody AnnouncementRequest req) {
-        return deliveryAnnouncementService.update(id, req);
-    }
+  @PutMapping("/{id}")
+  @PreAuthorize("hasRole('MANAGER')")
+  public AnnouncementResponse update(
+      @PathVariable Long id, @Valid @RequestBody AnnouncementRequest req) {
+    return deliveryAnnouncementService.update(id, req);
+  }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        deliveryAnnouncementService.delete(id);
-    }
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('MANAGER')")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable Long id) {
+    deliveryAnnouncementService.delete(id);
+  }
 }

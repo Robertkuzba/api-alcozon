@@ -10,6 +10,10 @@ import com.alcoholfactory.api.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,70 +29,70 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-
-import java.util.List;
-import java.util.Set;
-
 @RestController
 @RequestMapping("/custom-orders")
 @RequiredArgsConstructor
 @Tag(name = "Custom orders")
 public class CustomOrderController {
 
-    private static final Set<String> STAFF = Set.of("ROLE_EMPLOYEE", "ROLE_MANAGER");
+  private static final Set<String> STAFF = Set.of("ROLE_EMPLOYEE", "ROLE_MANAGER");
 
-    private final CustomOrderService customOrderService;
+  private final CustomOrderService customOrderService;
 
-    @PostMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CustomOrderResponse create(
-            @AuthenticationPrincipal AppUserDetails user,
-            @Valid @RequestBody CreateCustomOrderRequest request
-    ) {
-        return customOrderService.create(user.getId(), request);
-    }
+  @PostMapping
+  @PreAuthorize("hasRole('CUSTOMER')")
+  @ResponseStatus(HttpStatus.CREATED)
+  public CustomOrderResponse create(
+      @AuthenticationPrincipal AppUserDetails user,
+      @Valid @RequestBody CreateCustomOrderRequest request) {
+    return customOrderService.create(user.getId(), request);
+  }
 
-    @GetMapping("/track")
-    @Operation(summary = "Publiczne śledzenie zamówienia własnego (id, CUSTOM-{id} lub clientOrderNumber + e-mail)")
-    public CustomOrderTrackResponse trackPublic(
-            @RequestParam @NotBlank String orderId,
-            @RequestParam @NotBlank @Email String email
-    ) {
-        return customOrderService.trackPublic(orderId, email);
-    }
+  @GetMapping("/track")
+  @Operation(
+      summary =
+          "Publiczne śledzenie zamówienia własnego (id, CUSTOM-{id} lub clientOrderNumber +"
+              + " e-mail)")
+  public CustomOrderTrackResponse trackPublic(
+      @RequestParam @NotBlank String orderId, @RequestParam @NotBlank @Email String email) {
+    return customOrderService.trackPublic(orderId, email);
+  }
 
-    @GetMapping("/my")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public List<CustomOrderResponse> my(@AuthenticationPrincipal AppUserDetails user) {
-        return customOrderService.my(user.getId());
-    }
+  @GetMapping("/my")
+  @PreAuthorize("hasRole('CUSTOMER')")
+  public List<CustomOrderResponse> my(@AuthenticationPrincipal AppUserDetails user) {
+    return customOrderService.my(user.getId());
+  }
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    @Operation(summary = "Lista zapytań niestandardowych")
-    public List<CustomOrderResponse> list() {
-        return customOrderService.listForStaff();
-    }
+  @GetMapping
+  @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+  @Operation(summary = "Lista zapytań niestandardowych")
+  public List<CustomOrderResponse> list() {
+    return customOrderService.listForStaff();
+  }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public CustomOrderResponse get(@PathVariable Long id, @AuthenticationPrincipal AppUserDetails user) {
-        boolean staff = user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(STAFF::contains);
-        return customOrderService.get(id, user.getId(), staff);
-    }
+  @GetMapping("/{id}")
+  @PreAuthorize("isAuthenticated()")
+  public CustomOrderResponse get(
+      @PathVariable Long id, @AuthenticationPrincipal AppUserDetails user) {
+    boolean staff =
+        user.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(STAFF::contains);
+    return customOrderService.get(id, user.getId(), staff);
+  }
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    public CustomOrderResponse patchStatus(@PathVariable Long id, @Valid @RequestBody PatchCustomOrderStatusRequest req) {
-        return customOrderService.patchStatus(id, req.status());
-    }
+  @PatchMapping("/{id}/status")
+  @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+  public CustomOrderResponse patchStatus(
+      @PathVariable Long id, @Valid @RequestBody PatchCustomOrderStatusRequest req) {
+    return customOrderService.patchStatus(id, req.status());
+  }
 
-    @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
-    public CustomOrderResponse assign(@PathVariable Long id, @Valid @RequestBody PatchAssignRequest req) {
-        return customOrderService.assign(id, req.assigneeUserId());
-    }
+  @PatchMapping("/{id}/assign")
+  @PreAuthorize("hasAnyRole('EMPLOYEE','MANAGER')")
+  public CustomOrderResponse assign(
+      @PathVariable Long id, @Valid @RequestBody PatchAssignRequest req) {
+    return customOrderService.assign(id, req.assigneeUserId());
+  }
 }

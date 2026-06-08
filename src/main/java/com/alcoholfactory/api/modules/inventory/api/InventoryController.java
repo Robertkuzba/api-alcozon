@@ -24,26 +24,22 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Inventory")
 public class InventoryController {
 
-    private final InventoryService inventoryService;
+  private final InventoryService inventoryService;
 
-    @GetMapping
-    public InventoryOverviewResponse get() {
-        return inventoryService.overview();
-    }
+  @GetMapping
+  public InventoryOverviewResponse get() {
+    return inventoryService.overview();
+  }
 
-    @PatchMapping("/products/{productId}")
-    public InventoryProductRow patchProduct(
-            @PathVariable Long productId,
-            @Valid @RequestBody PatchQuantityRequest req
-    ) {
-        return inventoryService.patchProductStock(productId, req.delta());
-    }
+  @PatchMapping("/products/{productId}")
+  public InventoryProductRow patchProduct(
+      @PathVariable Long productId, @Valid @RequestBody PatchQuantityRequest req) {
+    return inventoryService.patchProductStock(productId, req.delta());
+  }
 
-    @PatchMapping("/raw-materials/{rawMaterialId}")
-    public InventoryRawRow patchRaw(
-            @PathVariable Long rawMaterialId,
-            @Valid @RequestBody PatchRawQuantityRequest body
-    ) {
-        return inventoryService.patchRawMaterial(rawMaterialId, body.delta());
-    }
+  @PatchMapping("/raw-materials/{rawMaterialId}")
+  public InventoryRawRow patchRaw(
+      @PathVariable Long rawMaterialId, @Valid @RequestBody PatchRawQuantityRequest body) {
+    return inventoryService.patchRawMaterial(rawMaterialId, body.delta());
+  }
 }

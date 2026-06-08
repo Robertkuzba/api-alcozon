@@ -13,15 +13,14 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "replenishment_orders")
@@ -32,31 +31,31 @@ import java.util.List;
 @Builder
 public class ReplenishmentOrder {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "manager_id", nullable = false)
-    private User manager;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "manager_id", nullable = false)
+  private User manager;
 
-    @Column(columnDefinition = "TEXT")
-    private String note;
+  @Column(columnDefinition = "TEXT")
+  private String note;
 
-    @Column(nullable = false, length = 32)
-    private String status;
+  @Column(nullable = false, length = 32)
+  private String status;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false)
+  private Instant createdAt;
 
-    @OneToMany(mappedBy = "replenishment", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ReplenishmentLine> lines = new ArrayList<>();
+  @OneToMany(mappedBy = "replenishment", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<ReplenishmentLine> lines = new ArrayList<>();
 
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) {
-            createdAt = Instant.now();
-        }
+  @PrePersist
+  void prePersist() {
+    if (createdAt == null) {
+      createdAt = Instant.now();
     }
+  }
 }

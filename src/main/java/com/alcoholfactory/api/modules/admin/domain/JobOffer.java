@@ -11,13 +11,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "job_offers")
@@ -28,39 +27,39 @@ import java.time.Instant;
 @Builder
 public class JobOffer {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false)
-    private String title;
+  @Column(nullable = false)
+  private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String description;
+  @Column(nullable = false, columnDefinition = "TEXT")
+  private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private JobOfferStatus status;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private JobOfferStatus status;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
+  @PrePersist
+  void prePersist() {
+    Instant now = Instant.now();
+    if (createdAt == null) {
+      createdAt = now;
     }
-
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = Instant.now();
+    if (updatedAt == null) {
+      updatedAt = now;
     }
+  }
+
+  @PreUpdate
+  void preUpdate() {
+    updatedAt = Instant.now();
+  }
 }

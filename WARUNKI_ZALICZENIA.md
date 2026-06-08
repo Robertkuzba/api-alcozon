@@ -99,6 +99,7 @@ Dokument zbiorczy wymagań wykładowcy. **Ocena końcowa:** Ω = 0,3·k₁ + 0,5
 - [ ] Zmiany na main/master tylko przez pull requesty.
 - [ ] Każdy PR ma code review od innych członków zespołu.
 - [ ] CI: testy i lintery; merge po przejściu CI i code review.
+- [ ] API: job **Code style** w GitHub Actions (Spotless + Checkstyle) — `.github/workflows/ci.yml`.
 - [ ] PR-y squashowane i podpisane numerami z Issues (np. „Fixes #5”).
 
 ### Przed oddaniem

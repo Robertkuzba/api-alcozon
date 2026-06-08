@@ -7,6 +7,7 @@ import com.alcoholfactory.api.modules.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,54 +24,52 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
 @Tag(name = "Products")
 public class ProductController {
 
-    private final ProductService productService;
+  private final ProductService productService;
 
-    @GetMapping
-    @Operation(summary = "Lista / wyszukiwarka produktów (rate limit przy parametrze q)")
-    public Page<ProductResponse> list(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            Pageable pageable
-    ) {
-        return productService.search(q, category, minPrice, maxPrice, pageable);
-    }
+  @GetMapping
+  @Operation(summary = "Lista / wyszukiwarka produktów (rate limit przy parametrze q)")
+  public Page<ProductResponse> list(
+      @RequestParam(required = false) String q,
+      @RequestParam(required = false) String category,
+      @RequestParam(required = false) BigDecimal minPrice,
+      @RequestParam(required = false) BigDecimal maxPrice,
+      Pageable pageable) {
+    return productService.search(q, category, minPrice, maxPrice, pageable);
+  }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Szczegóły produktu")
-    public ProductResponse get(@PathVariable Long id) {
-        return productService.getById(id);
-    }
+  @GetMapping("/{id}")
+  @Operation(summary = "Szczegóły produktu")
+  public ProductResponse get(@PathVariable Long id) {
+    return productService.getById(id);
+  }
 
-    @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Utworzenie produktu")
-    public ProductResponse create(@Valid @RequestBody CreateProductRequest request) {
-        return productService.create(request);
-    }
+  @PostMapping
+  @PreAuthorize("hasRole('MANAGER')")
+  @ResponseStatus(HttpStatus.CREATED)
+  @Operation(summary = "Utworzenie produktu")
+  public ProductResponse create(@Valid @RequestBody CreateProductRequest request) {
+    return productService.create(request);
+  }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    @Operation(summary = "Aktualizacja produktu")
-    public ProductResponse update(@PathVariable Long id, @Valid @RequestBody UpdateProductRequest request) {
-        return productService.update(id, request);
-    }
+  @PutMapping("/{id}")
+  @PreAuthorize("hasRole('MANAGER')")
+  @Operation(summary = "Aktualizacja produktu")
+  public ProductResponse update(
+      @PathVariable Long id, @Valid @RequestBody UpdateProductRequest request) {
+    return productService.update(id, request);
+  }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Deaktywacja produktu")
-    public void delete(@PathVariable Long id) {
-        productService.deactivate(id);
-    }
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('MANAGER')")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  @Operation(summary = "Deaktywacja produktu")
+  public void delete(@PathVariable Long id) {
+    productService.deactivate(id);
+  }
 }

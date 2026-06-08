@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record PatchReplenishmentStatusRequest(
-        @NotBlank
+    @NotBlank
         @Pattern(regexp = "RECEIVED|COMPLETED", message = "status must be RECEIVED or COMPLETED")
-        String status
-) {}
+        String status) {}

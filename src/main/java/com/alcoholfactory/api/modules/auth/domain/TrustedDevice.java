@@ -12,20 +12,18 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @Entity
 @Table(
-        name = "trusted_devices",
-        schema = "public",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "device_id"})
-)
+    name = "trusted_devices",
+    schema = "public",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "device_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,31 +31,31 @@ import java.time.Instant;
 @Builder
 public class TrustedDevice {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @Column(name = "device_id", nullable = false, length = 128)
-    private String deviceId;
+  @Column(name = "device_id", nullable = false, length = 128)
+  private String deviceId;
 
-    @Column(name = "last_used_at", nullable = false)
-    private Instant lastUsedAt;
+  @Column(name = "last_used_at", nullable = false)
+  private Instant lastUsedAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (lastUsedAt == null) {
-            lastUsedAt = now;
-        }
+  @PrePersist
+  void prePersist() {
+    Instant now = Instant.now();
+    if (createdAt == null) {
+      createdAt = now;
     }
+    if (lastUsedAt == null) {
+      lastUsedAt = now;
+    }
+  }
 }

@@ -14,19 +14,18 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @SpringBootApplication
 @EnableConfigurationProperties({
-        JwtProperties.class,
-        AppSecurityProperties.class,
-        CorsProperties.class,
-        FirebaseProperties.class,
-        DevNotificationTestHookProperties.class,
-        MailProperties.class,
-        PasswordResetProperties.class,
-        TwoFactorProperties.class
+  JwtProperties.class,
+  AppSecurityProperties.class,
+  CorsProperties.class,
+  FirebaseProperties.class,
+  DevNotificationTestHookProperties.class,
+  MailProperties.class,
+  PasswordResetProperties.class,
+  TwoFactorProperties.class
 })
 public class AlcoholFactoryApiApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(AlcoholFactoryApiApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(AlcoholFactoryApiApplication.class, args);
+  }
 }

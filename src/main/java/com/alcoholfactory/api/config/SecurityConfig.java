@@ -22,57 +22,52 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final RateLimitFilter rateLimitFilter;
-    private final Environment environment;
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final RateLimitFilter rateLimitFilter;
+  private final Environment environment;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        boolean devNotificationHook = environment.getProperty(
-                "app.dev.notification-test-hook.enabled",
-                Boolean.class,
-                false
-        );
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {})
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers(
-                            "/docs/**",
-                            "/swagger-ui/**",
-                            "/api-docs/**",
-                            "/v3/api-docs/**"
-                    ).permitAll();
-                    auth.requestMatchers(HttpMethod.POST,
-                            "/api/auth/register",
-                            "/api/auth/login",
-                            "/api/auth/staff/login",
-                            "/api/auth/staff/verify-device",
-                            "/api/auth/refresh",
-                            "/api/auth/guest",
-                            "/api/auth/password-reset/request"
-                    ).permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll();
-                    auth.requestMatchers("/api/security/app-check", "/api/security/app-check/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/orders/track").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/custom-orders/track").permitAll();
-                    auth.requestMatchers("/actuator/health", "/actuator/health/**").permitAll();
-                    auth.requestMatchers("/ws/**").permitAll();
-                    if (devNotificationHook) {
-                        auth.requestMatchers(HttpMethod.POST, "/api/dev/notification-test/**").permitAll();
-                    }
-                    auth.anyRequest().authenticated();
-                })
-                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    boolean devNotificationHook =
+        environment.getProperty("app.dev.notification-test-hook.enabled", Boolean.class, false);
+    http.csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> {})
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth -> {
+              auth.requestMatchers("/docs/**", "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**")
+                  .permitAll();
+              auth.requestMatchers(
+                      HttpMethod.POST,
+                      "/api/auth/register",
+                      "/api/auth/login",
+                      "/api/auth/staff/login",
+                      "/api/auth/staff/verify-device",
+                      "/api/auth/refresh",
+                      "/api/auth/guest",
+                      "/api/auth/password-reset/request")
+                  .permitAll();
+              auth.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll();
+              auth.requestMatchers("/api/security/app-check", "/api/security/app-check/**")
+                  .permitAll();
+              auth.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll();
+              auth.requestMatchers(HttpMethod.GET, "/api/orders/track").permitAll();
+              auth.requestMatchers(HttpMethod.GET, "/api/custom-orders/track").permitAll();
+              auth.requestMatchers("/actuator/health", "/actuator/health/**").permitAll();
+              auth.requestMatchers("/ws/**").permitAll();
+              if (devNotificationHook) {
+                auth.requestMatchers(HttpMethod.POST, "/api/dev/notification-test/**").permitAll();
+              }
+              auth.anyRequest().authenticated();
+            })
+        .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    return http.build();
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 }

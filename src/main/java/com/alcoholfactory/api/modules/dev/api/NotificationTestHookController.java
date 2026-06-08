@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Tymczasowy endpoint bez auth — tylko gdy {@code app.dev.notification-test-hook.enabled=true}.
- * Po testach FCM wyłącz flagę na Renderze.
+ * Tymczasowy endpoint bez auth — tylko gdy {@code app.dev.notification-test-hook.enabled=true}. Po
+ * testach FCM wyłącz flagę na Renderze.
  */
 @RestController
 @RequestMapping("/api/dev/notification-test")
@@ -23,12 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Dev — test powiadomień (tymczasowy)")
 public class NotificationTestHookController {
 
-    private final NotificationTestHookService notificationTestHookService;
+  private final NotificationTestHookService notificationTestHookService;
 
-    @PostMapping("/order-assigned-to-employee")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Utwórz zamówienie i przypisz dostawę do employee@example.com (bez JWT)")
-    public NotificationTestHookResponse orderAssignedToEmployee() {
-        return notificationTestHookService.createOrderAndAssignToSeedEmployee();
-    }
+  @PostMapping("/order-assigned-to-employee")
+  @ResponseStatus(HttpStatus.CREATED)
+  @Operation(summary = "Utwórz zamówienie i przypisz dostawę do employee@example.com (bez JWT)")
+  public NotificationTestHookResponse orderAssignedToEmployee() {
+    return notificationTestHookService.createOrderAndAssignToSeedEmployee();
+  }
 }

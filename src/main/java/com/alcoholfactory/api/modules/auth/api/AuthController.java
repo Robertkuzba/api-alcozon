@@ -31,64 +31,66 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Auth")
 public class AuthController {
 
-    private final AuthService authService;
-    private final StaffAuthService staffAuthService;
-    private final EmployeePasswordResetService employeePasswordResetService;
+  private final AuthService authService;
+  private final StaffAuthService staffAuthService;
+  private final EmployeePasswordResetService employeePasswordResetService;
 
-    @PostMapping("/register")
-    @Operation(summary = "Rejestracja (CUSTOMER)")
-    public TokenResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
-    }
+  @PostMapping("/register")
+  @Operation(summary = "Rejestracja (CUSTOMER)")
+  public TokenResponse register(@Valid @RequestBody RegisterRequest request) {
+    return authService.register(request);
+  }
 
-    @PostMapping("/login")
-    @Operation(summary = "Logowanie (CUSTOMER / GUEST — nie dla staff)")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
-    }
+  @PostMapping("/login")
+  @Operation(summary = "Logowanie (CUSTOMER / GUEST — nie dla staff)")
+  public TokenResponse login(@Valid @RequestBody LoginRequest request) {
+    return authService.login(request);
+  }
 
-    @PostMapping("/staff/login")
-    @Operation(summary = "Logowanie pracownika (EMPLOYEE/MANAGER) — 2FA e-mail + deviceId")
-    public StaffLoginResponse staffLogin(@Valid @RequestBody StaffLoginRequest request) {
-        return staffAuthService.staffLogin(request);
-    }
+  @PostMapping("/staff/login")
+  @Operation(summary = "Logowanie pracownika (EMPLOYEE/MANAGER) — 2FA e-mail + deviceId")
+  public StaffLoginResponse staffLogin(@Valid @RequestBody StaffLoginRequest request) {
+    return staffAuthService.staffLogin(request);
+  }
 
-    @PostMapping("/staff/verify-device")
-    @Operation(summary = "Potwierdzenie kodu 4-cyfrowego z e-maila (po staff/login)")
-    public TokenResponse verifyDevice(@Valid @RequestBody VerifyDeviceRequest request) {
-        return staffAuthService.verifyDevice(request);
-    }
+  @PostMapping("/staff/verify-device")
+  @Operation(summary = "Potwierdzenie kodu 4-cyfrowego z e-maila (po staff/login)")
+  public TokenResponse verifyDevice(@Valid @RequestBody VerifyDeviceRequest request) {
+    return staffAuthService.verifyDevice(request);
+  }
 
-    @PostMapping("/password-reset/request")
-    @Operation(summary = "Reset hasła staff (EMPLOYEE, MANAGER) — publiczny, zawsze 204")
-    public ResponseEntity<Void> requestEmployeePasswordReset(@Valid @RequestBody PasswordResetRequest request) {
-        employeePasswordResetService.requestReset(request.email());
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
+  @PostMapping("/password-reset/request")
+  @Operation(summary = "Reset hasła staff (EMPLOYEE, MANAGER) — publiczny, zawsze 204")
+  public ResponseEntity<Void> requestEmployeePasswordReset(
+      @Valid @RequestBody PasswordResetRequest request) {
+    employeePasswordResetService.requestReset(request.email());
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
 
-    @PostMapping("/refresh")
-    @Operation(summary = "Odświeżenie access tokena")
-    public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
-        return authService.refresh(request);
-    }
+  @PostMapping("/refresh")
+  @Operation(summary = "Odświeżenie access tokena")
+  public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+    return authService.refresh(request);
+  }
 
-    @PostMapping("/logout")
-    @Operation(summary = "Wylogowanie (unieważnienie refresh tokena)")
-    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
-        authService.logout(request);
-        return ResponseEntity.noContent().build();
-    }
+  @PostMapping("/logout")
+  @Operation(summary = "Wylogowanie (unieważnienie refresh tokena)")
+  public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
+    authService.logout(request);
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping("/guest")
-    @Operation(summary = "Sesja gościa (JWT z rolą GUEST)")
-    public TokenResponse guest() {
-        return authService.createGuestSession();
-    }
+  @PostMapping("/guest")
+  @Operation(summary = "Sesja gościa (JWT z rolą GUEST)")
+  public TokenResponse guest() {
+    return authService.createGuestSession();
+  }
 
-    @PostMapping("/confirm-age")
-    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER')")
-    @Operation(summary = "Potwierdzenie 18+ (GUEST→CUSTOMER lub ustawienie ageConfirmedAt), nowe tokeny")
-    public TokenResponse confirmAge(@AuthenticationPrincipal AppUserDetails user) {
-        return authService.confirmAgeAndReissue(user);
-    }
+  @PostMapping("/confirm-age")
+  @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER')")
+  @Operation(
+      summary = "Potwierdzenie 18+ (GUEST→CUSTOMER lub ustawienie ageConfirmedAt), nowe tokeny")
+  public TokenResponse confirmAge(@AuthenticationPrincipal AppUserDetails user) {
+    return authService.confirmAgeAndReissue(user);
+  }
 }

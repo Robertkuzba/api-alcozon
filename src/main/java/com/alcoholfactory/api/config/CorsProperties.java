@@ -1,15 +1,13 @@
 package com.alcoholfactory.api.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.cors")
 public record CorsProperties(
-        List<String> allowedOrigins,
-        List<String> allowedMethods,
-        List<String> allowedHeaders,
-        List<String> exposedHeaders,
-        boolean allowCredentials,
-        long maxAgeSeconds
-) {}
+    List<String> allowedOrigins,
+    List<String> allowedMethods,
+    List<String> allowedHeaders,
+    List<String> exposedHeaders,
+    boolean allowCredentials,
+    long maxAgeSeconds) {}

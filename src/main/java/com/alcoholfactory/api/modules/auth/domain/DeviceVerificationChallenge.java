@@ -9,14 +9,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "device_verification_challenges", schema = "public")
@@ -27,40 +26,40 @@ import java.util.UUID;
 @Builder
 public class DeviceVerificationChallenge {
 
-    @Id
-    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
-    private UUID id;
+  @Id
+  @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+  private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @Column(name = "device_id", nullable = false, length = 128)
-    private String deviceId;
+  @Column(name = "device_id", nullable = false, length = 128)
+  private String deviceId;
 
-    @Column(name = "code_hash", nullable = false, length = 64)
-    private String codeHash;
+  @Column(name = "code_hash", nullable = false, length = 64)
+  private String codeHash;
 
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+  @Column(name = "expires_at", nullable = false)
+  private Instant expiresAt;
 
-    @Column(name = "consumed_at")
-    private Instant consumedAt;
+  @Column(name = "consumed_at")
+  private Instant consumedAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @PrePersist
-    void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID();
-        }
-        if (createdAt == null) {
-            createdAt = Instant.now();
-        }
+  @PrePersist
+  void prePersist() {
+    if (id == null) {
+      id = UUID.randomUUID();
     }
-
-    public boolean isActive() {
-        return consumedAt == null && expiresAt.isAfter(Instant.now());
+    if (createdAt == null) {
+      createdAt = Instant.now();
     }
+  }
+
+  public boolean isActive() {
+    return consumedAt == null && expiresAt.isAfter(Instant.now());
+  }
 }

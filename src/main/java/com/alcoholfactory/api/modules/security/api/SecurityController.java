@@ -19,12 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Security")
 public class SecurityController {
 
-    private final AppSecurityService appSecurityService;
+  private final AppSecurityService appSecurityService;
 
-    @PostMapping("/app-check")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Weryfikacja podpisu / pakietu aplikacji mobilnej (Android)")
-    public void appCheck(@Valid @RequestBody AppCheckRequest request) {
-        appSecurityService.verify(request);
-    }
+  @PostMapping("/app-check")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  @Operation(summary = "Weryfikacja podpisu / pakietu aplikacji mobilnej (Android)")
+  public void appCheck(@Valid @RequestBody AppCheckRequest request) {
+    appSecurityService.verify(request);
+  }
 }

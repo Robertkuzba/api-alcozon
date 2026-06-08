@@ -18,13 +18,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "deliveries")
@@ -35,35 +34,34 @@ import java.time.Instant;
 @Builder
 public class Delivery {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", unique = true)
-    private CustomerOrder order;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "order_id", unique = true)
+  private CustomerOrder order;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "custom_order_id", unique = true)
-    private CustomOrder customOrder;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "custom_order_id", unique = true)
+  private CustomOrder customOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "courier_id")
-    private User courier;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "courier_id")
+  private User courier;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private DeliveryStatus status;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private DeliveryStatus status;
 
-    @Column(name = "client_order_number", length = 50)
-    private String clientOrderNumber;
+  @Column(name = "client_order_number", length = 50)
+  private String clientOrderNumber;
 
-    @Embedded
-    private OrderDeliveryDetails deliveryDetails;
+  @Embedded private OrderDeliveryDetails deliveryDetails;
 
-    @Column(name = "started_at")
-    private Instant startedAt;
+  @Column(name = "started_at")
+  private Instant startedAt;
 
-    @Column(name = "delivered_at")
-    private Instant deliveredAt;
+  @Column(name = "delivered_at")
+  private Instant deliveredAt;
 }

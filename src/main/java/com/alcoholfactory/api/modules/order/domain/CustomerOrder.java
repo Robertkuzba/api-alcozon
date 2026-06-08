@@ -20,16 +20,15 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -40,56 +39,55 @@ import java.util.List;
 @Builder
 public class CustomerOrder {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "customer_id", nullable = false)
+  private User customer;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private OrderStatus status;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private OrderStatus status;
 
-    @Column(name = "client_order_number", nullable = false, length = 50)
-    private String clientOrderNumber;
+  @Column(name = "client_order_number", nullable = false, length = 50)
+  private String clientOrderNumber;
 
-    @Embedded
-    private OrderDeliveryDetails deliveryDetails;
+  @Embedded private OrderDeliveryDetails deliveryDetails;
 
-    @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
-    private BigDecimal totalAmount;
+  @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
+  private BigDecimal totalAmount;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @Column(name = "delivered_at")
-    private Instant deliveredAt;
+  @Column(name = "delivered_at")
+  private Instant deliveredAt;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<OrderItem> items = new ArrayList<>();
+  @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<OrderItem> items = new ArrayList<>();
 
-    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
-    private Delivery delivery;
+  @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
+  private Delivery delivery;
 
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
+  @PrePersist
+  void prePersist() {
+    Instant now = Instant.now();
+    if (createdAt == null) {
+      createdAt = now;
     }
-
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = Instant.now();
+    if (updatedAt == null) {
+      updatedAt = now;
     }
+  }
+
+  @PreUpdate
+  void preUpdate() {
+    updatedAt = Instant.now();
+  }
 }

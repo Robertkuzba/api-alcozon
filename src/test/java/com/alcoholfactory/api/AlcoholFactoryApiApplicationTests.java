@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 
 class AlcoholFactoryApiApplicationTests extends AbstractIntegrationTest {
 
-    @Test
-    void contextLoads() {
-    }
+  @Test
+  void contextLoads() {}
 }

@@ -11,13 +11,12 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "product_stock")
@@ -28,27 +27,27 @@ import java.time.Instant;
 @Builder
 public class ProductStock {
 
-    @Id
-    @Column(name = "product_id")
-    private Long id;
+  @Id
+  @Column(name = "product_id")
+  private Long id;
 
-    @MapsId
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+  @MapsId
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "product_id")
+  private Product product;
 
-    @Column(nullable = false)
-    private int quantity;
+  @Column(nullable = false)
+  private int quantity;
 
-    @Column(name = "warehouse_zone", length = 64)
-    private String warehouseZone;
+  @Column(name = "warehouse_zone", length = 64)
+  private String warehouseZone;
 
-    @Column(name = "last_updated_at", nullable = false)
-    private Instant lastUpdatedAt;
+  @Column(name = "last_updated_at", nullable = false)
+  private Instant lastUpdatedAt;
 
-    @PrePersist
-    @PreUpdate
-    void touch() {
-        lastUpdatedAt = Instant.now();
-    }
+  @PrePersist
+  @PreUpdate
+  void touch() {
+    lastUpdatedAt = Instant.now();
+  }
 }

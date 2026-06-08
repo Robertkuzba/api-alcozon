@@ -7,6 +7,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -14,97 +18,91 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
- * Login: 10 prób / 15 min / IP. Wyszukiwarka produktów (param q): 5 req/s / IP.
- * Publiczne śledzenie zamówienia: 30 żądań / min / IP.
+ * Login: 10 prób / 15 min / IP. Wyszukiwarka produktów (param q): 5 req/s / IP. Publiczne śledzenie
+ * zamówienia: 30 żądań / min / IP.
  */
 @Component
 @Order(0)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    @Value("${app.rate-limit.enabled:true}")
-    private boolean rateLimitEnabled;
+  @Value("${app.rate-limit.enabled:true}")
+  private boolean rateLimitEnabled;
 
-    private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Bucket> searchBuckets = new ConcurrentHashMap<>();
-    private final Map<String, Bucket> orderTrackBuckets = new ConcurrentHashMap<>();
+  private final Map<String, Bucket> loginBuckets = new ConcurrentHashMap<>();
+  private final Map<String, Bucket> searchBuckets = new ConcurrentHashMap<>();
+  private final Map<String, Bucket> orderTrackBuckets = new ConcurrentHashMap<>();
 
-    @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
-        if (!rateLimitEnabled) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        String path = request.getRequestURI();
-        String ip = clientIp(request);
+  @Override
+  protected void doFilterInternal(
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
+      throws ServletException, IOException {
+    if (!rateLimitEnabled) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+    String path = request.getRequestURI();
+    String ip = clientIp(request);
 
-        if ("POST".equalsIgnoreCase(request.getMethod())
-                && (path.contains("/auth/login") || path.contains("/auth/password-reset/request"))) {
-            Bucket bucket = loginBuckets.computeIfAbsent(ip, k -> loginBucket());
-            if (!bucket.tryConsume(1)) {
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setHeader("Retry-After", "60");
-                response.getWriter().write("Too many login attempts");
-                return;
-            }
-        }
-
-        if ("GET".equalsIgnoreCase(request.getMethod())
-                && path.contains("/orders/track")) {
-            Bucket bucket = orderTrackBuckets.computeIfAbsent(ip, k -> orderTrackBucket());
-            if (!bucket.tryConsume(1)) {
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setHeader("Retry-After", "60");
-                response.getWriter().write("Order track rate limit exceeded");
-                return;
-            }
-        }
-
-        if ("GET".equalsIgnoreCase(request.getMethod())
-                && path.contains("/products")
-                && request.getParameter("q") != null
-                && !request.getParameter("q").isBlank()) {
-            Bucket bucket = searchBuckets.computeIfAbsent(ip, k -> searchBucket());
-            if (!bucket.tryConsume(1)) {
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setHeader("Retry-After", "1");
-                response.getWriter().write("Product search rate limit exceeded");
-                return;
-            }
-        }
-
-        filterChain.doFilter(request, response);
+    if ("POST".equalsIgnoreCase(request.getMethod())
+        && (path.contains("/auth/login") || path.contains("/auth/password-reset/request"))) {
+      Bucket bucket = loginBuckets.computeIfAbsent(ip, k -> loginBucket());
+      if (!bucket.tryConsume(1)) {
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setHeader("Retry-After", "60");
+        response.getWriter().write("Too many login attempts");
+        return;
+      }
     }
 
-    private static Bucket loginBucket() {
-        Bandwidth limit = Bandwidth.classic(10, Refill.intervally(10, Duration.ofMinutes(15)));
-        return Bucket.builder().addLimit(limit).build();
+    if ("GET".equalsIgnoreCase(request.getMethod()) && path.contains("/orders/track")) {
+      Bucket bucket = orderTrackBuckets.computeIfAbsent(ip, k -> orderTrackBucket());
+      if (!bucket.tryConsume(1)) {
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setHeader("Retry-After", "60");
+        response.getWriter().write("Order track rate limit exceeded");
+        return;
+      }
     }
 
-    private static Bucket searchBucket() {
-        Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofSeconds(1)));
-        return Bucket.builder().addLimit(limit).build();
+    if ("GET".equalsIgnoreCase(request.getMethod())
+        && path.contains("/products")
+        && request.getParameter("q") != null
+        && !request.getParameter("q").isBlank()) {
+      Bucket bucket = searchBuckets.computeIfAbsent(ip, k -> searchBucket());
+      if (!bucket.tryConsume(1)) {
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setHeader("Retry-After", "1");
+        response.getWriter().write("Product search rate limit exceeded");
+        return;
+      }
     }
 
-    private static Bucket orderTrackBucket() {
-        Bandwidth limit = Bandwidth.classic(30, Refill.intervally(30, Duration.ofMinutes(1)));
-        return Bucket.builder().addLimit(limit).build();
-    }
+    filterChain.doFilter(request, response);
+  }
 
-    private static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+  private static Bucket loginBucket() {
+    Bandwidth limit = Bandwidth.classic(10, Refill.intervally(10, Duration.ofMinutes(15)));
+    return Bucket.builder().addLimit(limit).build();
+  }
+
+  private static Bucket searchBucket() {
+    Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofSeconds(1)));
+    return Bucket.builder().addLimit(limit).build();
+  }
+
+  private static Bucket orderTrackBucket() {
+    Bandwidth limit = Bandwidth.classic(30, Refill.intervally(30, Duration.ofMinutes(1)));
+    return Bucket.builder().addLimit(limit).build();
+  }
+
+  private static String clientIp(HttpServletRequest request) {
+    String forwarded = request.getHeader("X-Forwarded-For");
+    if (forwarded != null && !forwarded.isBlank()) {
+      return forwarded.split(",")[0].trim();
     }
+    return request.getRemoteAddr();
+  }
 }

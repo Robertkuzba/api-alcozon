@@ -52,4 +52,17 @@ docker build -t alcohol-api .
 
 ## CI
 
-GitHub Actions: `.github/workflows/ci.yml` (`mvn verify` – wymaga Dockera na runnerze).
+GitHub Actions: `.github/workflows/ci.yml`
+
+- **Code style** job: Spotless (Google Java Format) + Checkstyle
+- **Tests and package** job: `./mvnw verify` (Testcontainers + PostgreSQL)
+
+Lokalnie przed commitem:
+
+```bash
+./mvnw spotless:apply          # sformatuj kod (Google Java Format)
+./mvnw spotless:check checkstyle:check
+./mvnw verify
+```
+
+Konfiguracja: `config/checkstyle/checkstyle.xml`, pluginy w `pom.xml`.

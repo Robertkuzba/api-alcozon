@@ -10,13 +10,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Entity
 @Table(name = "work_logs")
@@ -27,26 +26,26 @@ import java.time.Instant;
 @Builder
 public class WorkLog {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "employee_id", nullable = false)
-    private User employee;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "employee_id", nullable = false)
+  private User employee;
 
-    @Column(name = "clock_in_at", nullable = false)
-    private Instant clockInAt;
+  @Column(name = "clock_in_at", nullable = false)
+  private Instant clockInAt;
 
-    @Column(name = "clock_out_at")
-    private Instant clockOutAt;
+  @Column(name = "clock_out_at")
+  private Instant clockOutAt;
 
-    @Column(name = "break_started_at")
-    private Instant breakStartedAt;
+  @Column(name = "break_started_at")
+  private Instant breakStartedAt;
 
-    @Column(name = "break_ended_at")
-    private Instant breakEndedAt;
+  @Column(name = "break_ended_at")
+  private Instant breakEndedAt;
 
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+  @Column(columnDefinition = "TEXT")
+  private String notes;
 }
