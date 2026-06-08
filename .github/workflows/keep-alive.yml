@@ -1,0 +1,40 @@
+# Własny keep-alive dla Render free tier (cold start ~50–90 s).
+# Ping co 14 min — poniżej typowego progu usypiania (~15 min).
+# Nie failuje workflowu przy timeoutie / 503 podczas budzenia JVM.
+name: Keep API warm
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keep-api-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping health endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wake Render instance
+        run: |
+          set +e
+          URL="https://api-alcozon.onrender.com/actuator/health"
+          echo "Pinging $URL at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          HTTP_CODE=$(curl -sS -o /tmp/health.json -w "%{http_code}" \
+            --connect-timeout 30 \
+            --max-time 120 \
+            "$URL" || echo "000")
+          echo "HTTP status: $HTTP_CODE"
+          if [ -f /tmp/health.json ]; then
+            head -c 200 /tmp/health.json || true
+            echo
+          fi
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "API is up."
+          else
+            echo "Ping did not return 200 (cold start or transient error) — workflow stays green."
+          fi
+          exit 0
